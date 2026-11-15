@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CT Q4 Check</title>
+  <meta name="description" content="Drop your X handle. See how big Q4 will be for you." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <header class="brand">
+        <button type="button" id="homeLink" class="logo">CT Q4 Check</button>
+        <p class="tagline" id="tagline">Drop your X handle. See how big Q4 will be for you.</p>
+      </header>
+
+      <div id="home">
+        <label class="field" for="handle">X username</label>
+        <div class="input-wrap">
+          <span>@</span>
+          <input id="handle" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="username" />
+        </div>
+        <button class="go" id="checkBtn" type="button">Check my Q4 🚀</button>
+        <p class="err" id="homeErr"></p>
+      </div>
+
+      <div id="result" class="result hidden">
+        <div id="shareCard" class="share-card">
+          <div class="card-brand">CT Q4 Check</div>
+          <div id="demoBadge" class="demo-badge hidden">Demo data</div>
+          <div class="hero">
+            <div class="pfp-wrap"><img id="pfp" alt="Profile picture" /></div>
+            <div class="handle" id="youHandle"></div>
+          </div>
+          <div class="score-block">
+            <div class="score" id="score"></div>
+            <div class="label" id="label"></div>
+          </div>
+          <div class="chips" id="chips"></div>
+          <div class="stats" id="stats"></div>
+          <div class="box">
+            <div class="box-label">Top strength</div>
+            <p id="strength"></p>
+          </div>
+          <div class="box">
+            <div class="box-label">Focus on</div>
+            <ul id="tips"></ul>
+          </div>
+          <div class="progress" id="progress"></div>
+        </div>
+        <div class="actions">
+          <button class="share" id="downloadBtn" type="button">Download card</button>
+          <a class="share" id="shareBtn" target="_blank" rel="noopener noreferrer">Share on X</a>
+          <button class="again" id="againBtn" type="button">Check another</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
