@@ -21,27 +21,43 @@ const QUESTIONS = [
     ],
   },
   {
-    id: "focus",
-    text: "What are you currently spending most of your time on?",
+    id: "followers",
+    text: "How many followers do you have?",
     options: [
-      { value: "content", label: "Creating content", score: 13 },
-      { value: "trading", label: "Trading", score: 12 },
-      { value: "building", label: "Building a project", score: 15 },
-      { value: "community", label: "Growing a community", score: 14 },
-      { value: "networking", label: "Networking/collabs", score: 13 },
-      { value: "learning", label: "Learning", score: 8 },
+      { value: "under1k", label: "Under 1K", mid: 500, reach: 2 },
+      { value: "1to5k", label: "1K – 5K", mid: 3000, reach: 3 },
+      { value: "5to20k", label: "5K – 20K", mid: 12500, reach: 4 },
+      { value: "20kplus", label: "20K+", mid: 40000, reach: 5 },
     ],
   },
   {
-    id: "achievement",
-    text: "What's your biggest achievement so far this year?",
+    id: "consistency",
+    text: "How consistent have you been with your content?",
     options: [
-      { value: "followers", label: "Grew my followers", score: 18 },
-      { value: "collab", label: "Landed a collab/paid deal", score: 22 },
-      { value: "trades", label: "Profitable trades", score: 20 },
-      { value: "launched", label: "Launched a project", score: 25 },
-      { value: "community", label: "Built a community", score: 22 },
-      { value: "loading", label: "Still loading...", score: 4 },
+      { value: "daily", label: "Every day", score: 25 },
+      { value: "most", label: "Most days", score: 20 },
+      { value: "weekly", label: "Few times a week", score: 12 },
+      { value: "irregular", label: "On and off", score: 4 },
+    ],
+  },
+  {
+    id: "likes",
+    text: "Average likes on a post?",
+    options: [
+      { value: "under10", label: "Under 10", mid: 5 },
+      { value: "10to50", label: "10 – 50", mid: 30 },
+      { value: "50to200", label: "50 – 200", mid: 125 },
+      { value: "200plus", label: "200+", mid: 350 },
+    ],
+  },
+  {
+    id: "trend",
+    text: "Last 30 days, how did engagement change?",
+    options: [
+      { value: "down", label: "Down", score: 4, direction: "down", phrase: "Down vs last 30 days" },
+      { value: "flat", label: "About the same", score: 10, direction: "flat", phrase: "About the same vs last 30 days" },
+      { value: "up", label: "Up a bit", score: 15, direction: "up", phrase: "Up vs last 30 days" },
+      { value: "wayup", label: "Way up", score: 20, direction: "up", phrase: "Way up vs last 30 days" },
     ],
   },
   {
@@ -49,33 +65,11 @@ const QUESTIONS = [
     text: "What's holding you back from reaching your goals?",
     options: [
       { value: "consistency", label: "Consistency", score: 4 },
-      { value: "time", label: "Time", score: 10 },
-      { value: "engagement", label: "Low engagement", score: 9 },
+      { value: "time", label: "Time", score: 9 },
+      { value: "engagement", label: "Low engagement", score: 8 },
       { value: "plan", label: "No clear plan", score: 5 },
       { value: "network", label: "Network", score: 12 },
-      { value: "funds", label: "Funds", score: 11 },
-    ],
-  },
-  {
-    id: "consistency",
-    text: "How consistent have you been with your work and content?",
-    options: [
-      { value: "daily", label: "Every day", score: 30 },
-      { value: "most", label: "Most days", score: 24 },
-      { value: "weekly", label: "Few times a week", score: 14 },
-      { value: "irregular", label: "On and off", score: 4 },
-    ],
-  },
-  {
-    id: "skill",
-    text: "What skill do you want to improve before the end of Q4?",
-    options: [
-      { value: "writing", label: "Writing/threads" },
-      { value: "visuals", label: "Design/visuals" },
-      { value: "trading", label: "Trading" },
-      { value: "networking", label: "Networking" },
-      { value: "video", label: "Video" },
-      { value: "building", label: "Building/dev" },
+      { value: "funds", label: "Funds", score: 10 },
     ],
   },
   {
@@ -96,12 +90,12 @@ const QUESTIONS = [
     id: "mission",
     text: "What's one thing you're determined to change before the year ends?",
     options: [
-      { value: "daily", label: "Post daily", score: 9 },
-      { value: "followers", label: "Hit a follower goal", score: 8 },
-      { value: "overtrading", label: "Stop overtrading", score: 9 },
-      { value: "ship", label: "Ship my project", score: 10 },
-      { value: "connections", label: "Build real connections", score: 8 },
-      { value: "brand", label: "Level up my brand", score: 8 },
+      { value: "daily", label: "Post daily", score: 7 },
+      { value: "followers", label: "Hit a follower goal", score: 6 },
+      { value: "overtrading", label: "Stop overtrading", score: 7 },
+      { value: "ship", label: "Ship my project", score: 8 },
+      { value: "connections", label: "Build real connections", score: 6 },
+      { value: "brand", label: "Level up my brand", score: 6 },
     ],
   },
 ];
@@ -137,6 +131,9 @@ function optionLabel(id, value) {
 function buildTips(answers) {
   const tips = [];
   const niche = answers.niche;
+  const followers = optionByValue("followers", answers.followers);
+  const likes = optionByValue("likes", answers.likes);
+  const erScore = engagementScore(followers.mid, likes.mid);
 
   if (answers.blocker === "consistency" || answers.consistency === "irregular") {
     tips.push("Lock a 20-minute daily slot like a mint time — one post beats a burst and a silence.");
@@ -152,20 +149,12 @@ function buildTips(answers) {
     tips.push("Trade time for leverage — collabs and proof of work beat waiting on capital.");
   }
 
-  if (answers.skill === "writing") {
-    tips.push("Ship one tight thread in " + niche + " each week so people know where to find you.");
-  } else if (answers.skill === "visuals") {
-    tips.push("Lead more posts with a custom visual so they stop the scroll.");
-  } else if (answers.skill === "trading") {
-    tips.push("Write the thesis before you size in — and share the review, not just the entry.");
-  } else if (answers.skill === "networking") {
-    tips.push("Give value in replies and DMs first. Opportunities follow the people who show up.");
-  } else if (answers.skill === "video") {
-    tips.push("Try one short clip a week — even a screen-recorded take can outperform text.");
-  } else if (answers.skill === "building") {
-    tips.push("Ship something small in public every week, even if it's ugly.");
+  if (answers.trend === "down" && tips.length < 3) {
+    tips.push("Engagement slipped last month — bounce back with tighter hooks and more visuals.");
   }
-
+  if (erScore < 14 && answers.blocker !== "engagement" && tips.length < 3) {
+    tips.push("Reply under bigger accounts in " + niche + " to lift likes relative to your following.");
+  }
   if (answers.consistency === "weekly" && tips.length < 3) {
     tips.push("Bump to most days so the algo and your audience both remember you.");
   } else if (answers.consistency === "daily" && tips.length < 3) {
@@ -174,8 +163,18 @@ function buildTips(answers) {
     tips.push("Protect the streak through Q4, then raise the quality of each post.");
   }
 
-  if (tips.length < 2 && answers.mission === "daily") {
+  if (tips.length < 3 && answers.mission === "daily") {
     tips.push("Queue tomorrow's post tonight so the daily streak is already won.");
+  } else if (tips.length < 3 && answers.mission === "followers") {
+    tips.push("Pair a daily post with replies under larger " + niche + " accounts to grow faster.");
+  } else if (tips.length < 3 && answers.mission === "overtrading") {
+    tips.push("Write the thesis before you size in — and review the trade, not just the entry.");
+  } else if (tips.length < 3 && answers.mission === "ship") {
+    tips.push("Ship something small in public every week, even if it's ugly.");
+  } else if (tips.length < 3 && answers.mission === "connections") {
+    tips.push("Give value in replies and DMs first. Opportunities follow the people who show up.");
+  } else if (tips.length < 3 && answers.mission === "brand") {
+    tips.push("Make " + niche + " obvious in your bio, pinned post, and every hook.");
   }
   if (tips.length < 2) {
     tips.push("Make " + niche + " obvious in your bio, pinned post, and every hook.");
@@ -183,38 +182,39 @@ function buildTips(answers) {
   return tips.slice(0, 3);
 }
 
+function engagementScore(followersMid, likesMid) {
+  const er = followersMid > 0 ? (likesMid / followersMid) * 100 : 0;
+  if (er <= 0) return 0;
+  return clamp(Math.round(30 * (1 - Math.exp(-er / 1.4))), 0, 30);
+}
+
 function scoreAnswers(answers) {
-  const focus = optionByValue("focus", answers.focus);
-  const achievement = optionByValue("achievement", answers.achievement);
-  const blocker = optionByValue("blocker", answers.blocker);
+  const followers = optionByValue("followers", answers.followers);
+  const likes = optionByValue("likes", answers.likes);
   const consistency = optionByValue("consistency", answers.consistency);
+  const trend = optionByValue("trend", answers.trend);
+  const blocker = optionByValue("blocker", answers.blocker);
   const mission = optionByValue("mission", answers.mission);
-  const opps = answers.opportunities || [];
-  const openness = opps.length >= 3 ? 5 : opps.length === 2 ? 3 : 1;
-  let score =
+  const score = clamp(
     (consistency.score || 0) +
-    (achievement.score || 0) +
-    (focus.score || 0) +
-    (blocker.score || 0) +
-    (mission.score || 0) +
-    openness;
-  if (
-    answers.consistency === "daily" &&
-    (answers.achievement === "launched" || answers.achievement === "collab" || answers.achievement === "community")
-  ) {
-    score += 3;
-  }
-  score = clamp(score, 0, 100);
+      engagementScore(followers.mid, likes.mid) +
+      (trend.score || 0) +
+      (blocker.score || 0) +
+      (mission.score || 0) +
+      (followers.reach || 0),
+    0,
+    100
+  );
   return {
     score,
     label: scoreLabel(score),
     niche: answers.niche,
-    focus: focus.label,
-    win: achievement.label,
+    followers: followers.label,
+    likes: likes.label,
     blocker: blocker.label,
-    skill: optionLabel("skill", answers.skill),
-    opportunities: opps.map((value) => optionLabel("opportunities", value)),
+    opportunities: (answers.opportunities || []).map((value) => optionLabel("opportunities", value)),
     mission: mission.label,
+    trend,
     tips: buildTips(answers),
   };
 }
@@ -401,6 +401,26 @@ function shareText(data) {
   return `My 2026 Q4 Growth Card: ${data.score} (${data.label}) 🚀 Q4 mission: ${data.mission}. Get yours 👉 ${window.location.origin}`;
 }
 
+function renderStats(data) {
+  $("stats").innerHTML =
+    `<div class="stat"><b>${data.followers}</b><span>Followers</span></div>` +
+    `<div class="stat"><b>${data.likes}</b><span>Avg likes</span></div>`;
+}
+
+function renderProgress(trend) {
+  const el = $("progress");
+  el.className = "progress";
+  if (!trend) {
+    el.textContent = "";
+    return;
+  }
+  el.classList.add(trend.direction || "flat");
+  const arrow = trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→";
+  el.innerHTML =
+    `<span class="arrow">${arrow}</span>` +
+    `<span class="pct">${trend.phrase}</span>`;
+}
+
 function showResult() {
   const data = scoreAnswers(state.answers);
   const handle = state.handle;
@@ -410,10 +430,9 @@ function showResult() {
   $("score").textContent = String(data.score);
   $("label").textContent = data.label;
   renderChips($("nicheChips"), [data.niche], true);
-  $("focus").textContent = data.focus;
-  $("win").textContent = data.win;
+  renderStats(data);
+  renderProgress(data.trend);
   $("blocker").textContent = data.blocker;
-  $("skill").textContent = data.skill;
   renderChips($("openChips"), data.opportunities, false);
   $("mission").textContent = data.mission;
   renderTips(data.tips);

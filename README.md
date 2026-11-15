@@ -1,6 +1,6 @@
 # CT Q4 Check
 
-A mobile-first crypto Twitter quiz. People drop their X handle, answer eight quick questions, and share a **2026 Q4 Growth Card** with their score, focus, biggest win, and Q4 mission.
+A mobile-first crypto Twitter quiz. People drop their X handle, answer eight quick questions, and share a **2026 Q4 Growth Card** with their score, progress, and Q4 mission.
 
 There is **no X API** and **no usage cap**. The handle is only used to show a username and profile picture (via [unavatar](https://unavatar.io)). Scoring runs entirely in the browser.
 
@@ -37,9 +37,9 @@ If this service is already live from an earlier version, just push `main` and le
 ## How it works
 
 1. Enter an X username (optional leading `@`, then 1–15 letters, digits, or underscores).
-2. Answer 8 tap questions, one per screen: niche, how you spend your time, biggest win this year, what's holding you back, consistency, a skill to level up, opportunities you want (multi-select), and one Q4 mission.
+2. Answer 8 tap questions, one per screen: niche, followers, consistency, average likes, 30-day engagement trend, what's holding you back, opportunities you want (multi-select), and one Q4 mission.
 3. The site computes a Q4 score from 0–100 with a label: **Q4 Sleeper**, **Warming Up**, **Rising**, **Q4 Ready**, or **Q4 Giga Chad**.
-4. The result card is titled **2026 / Your Q4 Growth Card** and shows the profile picture, handle, score, niche, focus, biggest win, blocker, skill, "open to" chips, Q4 mission, and 2–3 tips.
+4. The result card is titled **2026 / Your Q4 Growth Card** and shows the profile picture, handle, score, niche, followers, average likes, a 30-day progress note, what's holding you back, "open to" chips, Q4 mission, and 2–3 tips.
 
 - Profile pictures load from `unavatar.io` through `/api/avatar`, with a letter-avatar fallback.
 - **Download card** renders the result to a PNG in the browser.
