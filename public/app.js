@@ -28,12 +28,12 @@ const QUESTIONS = [
     id: "followers",
     text: "How many followers do you have?",
     input: "count",
-    hint: "Type the exact number, like 16.2k or 17,000.",
-    placeholder: "e.g. 16.2k or 17,000",
+    hint: "Type the exact number, like 1k or 1000.",
+    placeholder: "e.g. 1k or 1000",
     label: "Follower count",
     max: 500000000,
     emptyError: "Enter how many followers you have.",
-    invalidError: "Use a number like 850, 16.2k, or 17,000.",
+    invalidError: "Use a number like 1k or 1000.",
     negativeError: "Follower count can't be negative.",
   },
   {
@@ -50,12 +50,12 @@ const QUESTIONS = [
     id: "likes",
     text: "Average likes on a post?",
     input: "count",
-    hint: "Type the exact number, like 85 or 1.2k.",
-    placeholder: "e.g. 85 or 1.2k",
+    hint: "Type the exact number, like 50 or 1k.",
+    placeholder: "e.g. 50 or 1k",
     label: "Average likes",
     max: 10000000,
     emptyError: "Enter your average likes on a post.",
-    invalidError: "Use a number like 85, 1.2k, or 1,200.",
+    invalidError: "Use a number like 50 or 1k.",
     negativeError: "Average likes can't be negative.",
   },
   {
@@ -126,9 +126,9 @@ function countConfig(q) {
   return {
     max: (question && question.max) || 500000000,
     emptyError: (question && question.emptyError) || "Enter a number.",
-    invalidError: (question && question.invalidError) || "Use a number like 85, 1.2k, or 1,200.",
+    invalidError: (question && question.invalidError) || "Use a number like 1k or 1000.",
     negativeError: (question && question.negativeError) || "That number can't be negative.",
-    placeholder: (question && question.placeholder) || "e.g. 85 or 1.2k",
+    placeholder: (question && question.placeholder) || "e.g. 1k or 1000",
     label: (question && question.label) || (question && question.text) || "Number",
   };
 }
@@ -150,7 +150,7 @@ function parseCountInput(raw, q) {
 
   const suffix = (match[2] || "").toLowerCase();
   if (!suffix && /\./.test(match[1])) {
-    return { ok: false, error: "Use a whole number, or add k or m (like 1.2k)." };
+    return { ok: false, error: "Use a whole number, or add k or m (like 1k)." };
   }
   if (suffix === "k") amount *= 1000;
   if (suffix === "m") amount *= 1000000;
@@ -163,7 +163,7 @@ function parseCountInput(raw, q) {
 
 function formatCount(count) {
   const n = Math.round(Number(count) || 0);
-  if (!Number.isFinite(n) || n < 0) return "—";
+  if (!Number.isFinite(n) || n < 0) return "n/a";
   if (n < 1000) return String(n);
   const base = n >= 1000000 ? 1000000 : 1000;
   const suffix = n >= 1000000 ? "M" : "K";
@@ -293,25 +293,25 @@ function buildTips(answers) {
   const nothing = hasAnswer("blocker", "nothing", answers);
 
   if (nothing) {
-    tips.push("You're locked in — scale what already works and spend more time in bigger " + niche + " rooms.");
+    tips.push("You are locked in. Scale what already works and spend more time in bigger " + niche + " rooms.");
   } else if (hasAnswer("blocker", "consistency", answers) || hasAnswer("consistency", "irregular", answers)) {
-    tips.push("Lock a 20-minute daily slot like a mint time — one post beats a burst and a silence.");
+    tips.push("Lock a 20 minute daily slot like a mint time. One post beats a burst and a silence.");
   } else if (hasAnswer("blocker", "time", answers)) {
     tips.push("Batch content twice a week so busy days don't kill your streak.");
   } else if (hasAnswer("blocker", "engagement", answers)) {
     tips.push("Reply under bigger accounts in " + niche + " and lead with a sharper first line.");
   } else if (hasAnswer("blocker", "plan", answers)) {
-    tips.push("Write a one-page Q4 plan: one goal, one weekly action, one number you track.");
+    tips.push("Write a one page Q4 plan: one goal, one weekly action, one number you track.");
   } else if (hasAnswer("blocker", "network", answers)) {
     tips.push("Start 3 genuine convos a day with people already in " + niche + ".");
   } else if (hasAnswer("blocker", "funds", answers)) {
-    tips.push("Trade time for leverage — collabs and proof of work beat waiting on capital.");
+    tips.push("Trade time for leverage. Collabs and proof of work beat waiting on capital.");
   } else if (hasAnswer("blocker", "other", answers)) {
     tips.push("Write the blocker down, then pick one weekly action that chips away at it.");
   }
 
   if (hasAnswer("trend", "down", answers) && tips.length < 3) {
-    tips.push("Engagement slipped last month — bounce back with tighter hooks and more visuals.");
+    tips.push("Engagement slipped last month. Bounce back with tighter hooks and more visuals.");
   }
   if (erScore < 14 && !hasAnswer("blocker", "engagement", answers) && tips.length < 3) {
     tips.push("Reply under bigger accounts in " + niche + " to lift likes relative to your following.");
@@ -319,7 +319,7 @@ function buildTips(answers) {
   if (hasAnswer("consistency", "weekly", answers) && tips.length < 3) {
     tips.push("Bump to most days so the algo and your audience both remember you.");
   } else if (hasAnswer("consistency", "daily", answers) && tips.length < 3) {
-    tips.push("You're already showing up. Raise the quality now — fewer filler posts, stronger takes.");
+    tips.push("You are already showing up. Raise the quality now with fewer filler posts and stronger takes.");
   } else if (hasAnswer("consistency", "most", answers) && tips.length < 3) {
     tips.push("Protect the streak through Q4, then raise the quality of each post.");
   }
@@ -329,7 +329,7 @@ function buildTips(answers) {
   } else if (tips.length < 3 && hasAnswer("mission", "followers", answers)) {
     tips.push("Pair a daily post with replies under larger " + niche + " accounts to grow faster.");
   } else if (tips.length < 3 && hasAnswer("mission", "overtrading", answers)) {
-    tips.push("Write the thesis before you size in — and review the trade, not just the entry.");
+    tips.push("Write the thesis before you size in, and review the trade, not just the entry.");
   } else if (tips.length < 3 && hasAnswer("mission", "ship", answers)) {
     tips.push("Ship something small in public every week, even if it's ugly.");
   } else if (tips.length < 3 && hasAnswer("mission", "connections", answers)) {
@@ -344,7 +344,7 @@ function buildTips(answers) {
 }
 
 function blockerDisplay(answers) {
-  if (hasAnswer("blocker", "nothing", answers)) return ["Nothing — locked in"];
+  if (hasAnswer("blocker", "nothing", answers)) return ["Nothing, locked in"];
   return selectedValues("blocker", answers)
     .map((value) => {
       if (value === "other") return cleanText(answers.blockerOther || "Something else");
