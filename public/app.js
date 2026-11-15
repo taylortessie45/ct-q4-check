@@ -28,12 +28,12 @@ const QUESTIONS = [
     id: "followers",
     text: "How many followers do you have?",
     input: "count",
-    hint: "Type the exact number, like 1k or 1000.",
-    placeholder: "e.g. 1k or 1000",
+    hint: "e.g. 1k, 1000",
+    placeholder: "e.g. 1k, 1000",
     label: "Follower count",
     max: 500000000,
-    emptyError: "Enter how many followers you have.",
-    invalidError: "Use a number like 1k or 1000.",
+    emptyError: "Enter a number.",
+    invalidError: "Enter a number.",
     negativeError: "Follower count can't be negative.",
   },
   {
@@ -50,12 +50,11 @@ const QUESTIONS = [
     id: "likes",
     text: "Average likes on a post?",
     input: "count",
-    hint: "Type the exact number, like 50 or 1k.",
-    placeholder: "e.g. 50 or 1k",
+    placeholder: "Type a number",
     label: "Average likes",
     max: 10000000,
-    emptyError: "Enter your average likes on a post.",
-    invalidError: "Use a number like 50 or 1k.",
+    emptyError: "Enter a number.",
+    invalidError: "Enter a number.",
     negativeError: "Average likes can't be negative.",
   },
   {
@@ -126,9 +125,9 @@ function countConfig(q) {
   return {
     max: (question && question.max) || 500000000,
     emptyError: (question && question.emptyError) || "Enter a number.",
-    invalidError: (question && question.invalidError) || "Use a number like 1k or 1000.",
+    invalidError: (question && question.invalidError) || "Enter a number.",
     negativeError: (question && question.negativeError) || "That number can't be negative.",
-    placeholder: (question && question.placeholder) || "e.g. 1k or 1000",
+    placeholder: (question && question.placeholder) || "Type a number",
     label: (question && question.label) || (question && question.text) || "Number",
   };
 }
@@ -150,7 +149,7 @@ function parseCountInput(raw, q) {
 
   const suffix = (match[2] || "").toLowerCase();
   if (!suffix && /\./.test(match[1])) {
-    return { ok: false, error: "Use a whole number, or add k or m (like 1k)." };
+    return { ok: false, error: "Enter a number." };
   }
   if (suffix === "k") amount *= 1000;
   if (suffix === "m") amount *= 1000000;

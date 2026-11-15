@@ -37,7 +37,7 @@ If this service is already live from an earlier version, just push `main` and le
 ## How it works
 
 1. Enter an X username (optional leading `@`, then 1–15 letters, digits, or underscores).
-2. Answer 8 questions, one per screen: niches, exact follower count, consistency, average likes, 30-day engagement trend, what's holding you back, opportunities, and Q4 missions. Niche, blockers, opportunities, and missions are multi-select. Follower count and average likes are typed (for example 1k or 1000, and 50 or 1k) and shown compactly on the card. Blocker options include short explanations, a Nothing option for people who are already doing well, and a "Something else" write-in.
+2. Answer 8 questions, one per screen: niches, exact follower count, consistency, average likes, 30-day engagement trend, what's holding you back, opportunities, and Q4 missions. Niche, blockers, opportunities, and missions are multi-select. Follower count is typed with a simple hint (e.g. 1k, 1000) and shown compactly on the card. Average likes is also typed, with no example on that screen. Blocker options include short explanations, a Nothing option for people who are already doing well, and a "Something else" write-in.
 3. The site computes a Q4 score from 0–100 with a label: **Q4 Sleeper**, **Warming Up**, **Rising**, **Q4 Ready**, or **Q4 Giga Chad**.
 4. The result card is titled **2026 · Your Q4 Growth Card** and shows the profile picture, handle, a large score badge, niche chips, followers, average likes, a 30-day progress note, what's holding you back, "open to" chips, Q4 missions, 2–3 tips, and the site URL. A **Built by @tenacious_ar** credit appears as a footer on every screen, with the handle linking to the X profile. It is not printed on the share card.
 
