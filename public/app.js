@@ -27,12 +27,8 @@ const QUESTIONS = [
   {
     id: "followers",
     text: "How many followers do you have?",
-    options: [
-      { value: "under1k", label: "Under 1K", mid: 500, reach: 2 },
-      { value: "1to5k", label: "1K – 5K", mid: 3000, reach: 3 },
-      { value: "5to20k", label: "5K – 20K", mid: 12500, reach: 4 },
-      { value: "20kplus", label: "20K+", mid: 40000, reach: 5 },
-    ],
+    input: "count",
+    hint: "Type the exact number, like 16.2k or 17,000.",
   },
   {
     id: "consistency",
@@ -115,6 +111,69 @@ const state = {
   index: 0,
   answers: {},
 };
+
+
+const MAX_FOLLOWERS = 500000000;
+
+function parseFollowerInput(raw) {
+  if (raw == null) return { ok: false, error: "Enter how many followers you have." };
+  const original = String(raw).trim();
+  if (!original) return { ok: false, error: "Enter how many followers you have." };
+
+  const compact = original.replace(/,/g, "").replace(/\s+/g, "");
+  if (/^-/.test(compact)) return { ok: false, error: "Follower count can't be negative." };
+
+  const match = compact.match(/^(\d+(?:\.\d+)?)([kKmM])?$/);
+  if (!match) return { ok: false, error: "Use a number like 850, 16.2k, or 17,000." };
+
+  let amount = Number(match[1]);
+  if (!Number.isFinite(amount)) return { ok: false, error: "Use a number like 850, 16.2k, or 17,000." };
+
+  const suffix = (match[2] || "").toLowerCase();
+  if (!suffix && /\./.test(match[1])) {
+    return { ok: false, error: "Use a whole number, or add k or m (like 16.2k)." };
+  }
+  if (suffix === "k") amount *= 1000;
+  if (suffix === "m") amount *= 1000000;
+
+  const value = Math.round(amount);
+  if (value < 0) return { ok: false, error: "Follower count can't be negative." };
+  if (value > MAX_FOLLOWERS) return { ok: false, error: "That number looks too high. Check it and try again." };
+  return { ok: true, value };
+}
+
+function formatFollowers(count) {
+  const n = Math.round(Number(count) || 0);
+  if (!Number.isFinite(n) || n < 0) return "—";
+  if (n < 1000) return String(n);
+  const base = n >= 1000000 ? 1000000 : 1000;
+  const suffix = n >= 1000000 ? "M" : "K";
+  const rounded = Math.round((n / base) * 10) / 10;
+  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return text + suffix;
+}
+
+function followerCount(answers = state.answers) {
+  const n = Number(answers.followers);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function followerReach(count) {
+  if (count < 1000) return 2;
+  if (count < 5000) return 3;
+  if (count < 20000) return 4;
+  return 5;
+}
+
+function isCountQuestion(q = QUESTIONS[state.index]) {
+  return Boolean(q && q.input === "count");
+}
+
+function showCountError(msg) {
+  const el = $("countErr");
+  el.textContent = msg || "";
+  el.classList.toggle("show", Boolean(msg));
+}
 
 function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
@@ -203,9 +262,8 @@ function nichePhrase(answers) {
 function buildTips(answers) {
   const tips = [];
   const niche = nichePhrase(answers);
-  const followers = firstOption("followers", answers);
   const likes = firstOption("likes", answers);
-  const erScore = engagementScore(followers && followers.mid, likes && likes.mid);
+  const erScore = engagementScore(followerCount(answers), likes && likes.mid);
   const nothing = hasAnswer("blocker", "nothing", answers);
 
   if (nothing) {
@@ -270,7 +328,7 @@ function blockerDisplay(answers) {
 }
 
 function scoreAnswers(answers) {
-  const followers = firstOption("followers", answers);
+  const followers = followerCount(answers);
   const likes = firstOption("likes", answers);
   const consistency = firstOption("consistency", answers);
   const trend = firstOption("trend", answers);
@@ -283,11 +341,11 @@ function scoreAnswers(answers) {
 
   const raw =
     (consistency && consistency.score ? consistency.score : 0) +
-    engagementScore(followers && followers.mid, likes && likes.mid) +
+    engagementScore(followers, likes && likes.mid) +
     (trend && trend.score ? trend.score : 0) +
     blockerPts +
     averageScore(missionOpts) +
-    (followers && followers.reach ? followers.reach : 0);
+    followerReach(followers);
 
   let score = clamp(Math.round(Number(raw) || 0), 0, 100);
   if (!Number.isFinite(score)) score = 0;
@@ -296,7 +354,7 @@ function scoreAnswers(answers) {
     score,
     label: scoreLabel(score),
     niches: selectedLabels("niche", answers),
-    followers: (followers && followers.label) || "—",
+    followers: formatFollowers(followers),
     likes: (likes && likes.label) || "—",
     blockers: blockerDisplay(answers),
     opportunities: selectedLabels("opportunities", answers),
@@ -344,6 +402,8 @@ function startQuiz() {
   state.answers = {};
   $("handle").value = handle;
   $("otherInput").value = "";
+  $("countInput").value = "";
+  showCountError("");
   setView("quiz");
   renderQuestion();
 }
@@ -357,6 +417,15 @@ function updateContinue() {
   const q = QUESTIONS[state.index];
   const btn = $("continueBtn");
   const wrap = $("otherWrap");
+  const countWrap = $("countWrap");
+  if (isCountQuestion(q)) {
+    wrap.classList.add("hidden");
+    countWrap.classList.remove("hidden");
+    btn.classList.remove("hidden");
+    btn.disabled = false;
+    return;
+  }
+  countWrap.classList.add("hidden");
   if (!q.multi) {
     wrap.classList.add("hidden");
     btn.classList.add("hidden");
@@ -405,8 +474,20 @@ function renderQuestion() {
   updateContinue();
 
   const root = $("options");
+  if (isCountQuestion(q)) {
+    root.className = "options hidden";
+    root.innerHTML = "";
+    showCountError("");
+    const raw = state.answers.followersRaw;
+    if (raw != null && raw !== "") $("countInput").value = raw;
+    else if (Number.isFinite(state.answers.followers)) $("countInput").value = String(state.answers.followers);
+    else $("countInput").value = "";
+    window.requestAnimationFrame(() => $("countInput").focus());
+    return;
+  }
+
   root.className = "options" + (q.layout === "grid-3" ? " grid-3" : "");
-  if (q.options.some((opt) => opt.sub)) root.classList.add("has-subs");
+  if (q.options && q.options.some((opt) => opt.sub)) root.classList.add("has-subs");
   root.innerHTML = "";
   const picked = new Set(selectedValues(q.id));
   q.options.forEach((opt) => {
@@ -469,6 +550,20 @@ function pickOption(q, value, btn) {
 
 function continueQuiz() {
   const q = QUESTIONS[state.index];
+  if (isCountQuestion(q)) {
+    const raw = $("countInput").value;
+    const parsed = parseFollowerInput(raw);
+    if (!parsed.ok) {
+      showCountError(parsed.error);
+      $("countInput").focus();
+      return;
+    }
+    showCountError("");
+    state.answers.followers = parsed.value;
+    state.answers.followersRaw = String(raw).trim();
+    advance();
+    return;
+  }
   if (!q.multi || selectedValues(q.id).length === 0) return;
   if (isOtherOpen()) {
     const text = $("otherInput").value.trim().slice(0, 40);
@@ -606,6 +701,8 @@ function resetAll() {
   state.answers = {};
   $("handle").value = "";
   $("otherInput").value = "";
+  $("countInput").value = "";
+  showCountError("");
   showHome();
   $("handle").focus();
 }
@@ -705,6 +802,15 @@ $("otherInput").addEventListener("input", () => {
   updateContinue();
 });
 $("otherInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    continueQuiz();
+  }
+});
+$("countInput").addEventListener("input", () => {
+  if ($("countErr").classList.contains("show")) showCountError("");
+});
+$("countInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
     continueQuiz();

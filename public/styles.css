@@ -363,8 +363,17 @@ input[type="text"]:focus {
   margin-bottom: 6px;
 }
 
-#otherInput {
+#otherInput,
+#countInput {
   padding: 0 14px;
+}
+
+.count-wrap {
+  margin: 8px 0 16px;
+}
+
+.count-wrap .err {
+  margin-top: 10px;
 }
 
 .result {

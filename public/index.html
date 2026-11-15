@@ -38,6 +38,10 @@
         <h2 class="question" id="question"></h2>
         <p class="hint hidden" id="quizHint"></p>
         <div class="options" id="options"></div>
+        <div id="countWrap" class="count-wrap hidden">
+          <input id="countInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" maxlength="24" placeholder="e.g. 16.2k or 17,000" aria-label="Follower count" />
+          <p class="err" id="countErr"></p>
+        </div>
         <div id="otherWrap" class="other-wrap hidden">
           <label class="field" for="otherInput">In a few words</label>
           <input id="otherInput" type="text" maxlength="40" autocomplete="off" spellcheck="true" placeholder="What's getting in the way?" />
