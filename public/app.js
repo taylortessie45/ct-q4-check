@@ -29,6 +29,12 @@ const QUESTIONS = [
     text: "How many followers do you have?",
     input: "count",
     hint: "Type the exact number, like 16.2k or 17,000.",
+    placeholder: "e.g. 16.2k or 17,000",
+    label: "Follower count",
+    max: 500000000,
+    emptyError: "Enter how many followers you have.",
+    invalidError: "Use a number like 850, 16.2k, or 17,000.",
+    negativeError: "Follower count can't be negative.",
   },
   {
     id: "consistency",
@@ -43,12 +49,14 @@ const QUESTIONS = [
   {
     id: "likes",
     text: "Average likes on a post?",
-    options: [
-      { value: "under10", label: "Under 10", mid: 5 },
-      { value: "10to50", label: "10 – 50", mid: 30 },
-      { value: "50to200", label: "50 – 200", mid: 125 },
-      { value: "200plus", label: "200+", mid: 350 },
-    ],
+    input: "count",
+    hint: "Type the exact number, like 85 or 1.2k.",
+    placeholder: "e.g. 85 or 1.2k",
+    label: "Average likes",
+    max: 10000000,
+    emptyError: "Enter your average likes on a post.",
+    invalidError: "Use a number like 85, 1.2k, or 1,200.",
+    negativeError: "Average likes can't be negative.",
   },
   {
     id: "trend",
@@ -113,36 +121,47 @@ const state = {
 };
 
 
-const MAX_FOLLOWERS = 500000000;
+function countConfig(q) {
+  const question = typeof q === "string" ? QUESTIONS.find((item) => item.id === q) : q;
+  return {
+    max: (question && question.max) || 500000000,
+    emptyError: (question && question.emptyError) || "Enter a number.",
+    invalidError: (question && question.invalidError) || "Use a number like 85, 1.2k, or 1,200.",
+    negativeError: (question && question.negativeError) || "That number can't be negative.",
+    placeholder: (question && question.placeholder) || "e.g. 85 or 1.2k",
+    label: (question && question.label) || (question && question.text) || "Number",
+  };
+}
 
-function parseFollowerInput(raw) {
-  if (raw == null) return { ok: false, error: "Enter how many followers you have." };
+function parseCountInput(raw, q) {
+  const cfg = countConfig(q);
+  if (raw == null) return { ok: false, error: cfg.emptyError };
   const original = String(raw).trim();
-  if (!original) return { ok: false, error: "Enter how many followers you have." };
+  if (!original) return { ok: false, error: cfg.emptyError };
 
   const compact = original.replace(/,/g, "").replace(/\s+/g, "");
-  if (/^-/.test(compact)) return { ok: false, error: "Follower count can't be negative." };
+  if (/^-/.test(compact)) return { ok: false, error: cfg.negativeError };
 
   const match = compact.match(/^(\d+(?:\.\d+)?)([kKmM])?$/);
-  if (!match) return { ok: false, error: "Use a number like 850, 16.2k, or 17,000." };
+  if (!match) return { ok: false, error: cfg.invalidError };
 
   let amount = Number(match[1]);
-  if (!Number.isFinite(amount)) return { ok: false, error: "Use a number like 850, 16.2k, or 17,000." };
+  if (!Number.isFinite(amount)) return { ok: false, error: cfg.invalidError };
 
   const suffix = (match[2] || "").toLowerCase();
   if (!suffix && /\./.test(match[1])) {
-    return { ok: false, error: "Use a whole number, or add k or m (like 16.2k)." };
+    return { ok: false, error: "Use a whole number, or add k or m (like 1.2k)." };
   }
   if (suffix === "k") amount *= 1000;
   if (suffix === "m") amount *= 1000000;
 
   const value = Math.round(amount);
-  if (value < 0) return { ok: false, error: "Follower count can't be negative." };
-  if (value > MAX_FOLLOWERS) return { ok: false, error: "That number looks too high. Check it and try again." };
+  if (value < 0) return { ok: false, error: cfg.negativeError };
+  if (value > cfg.max) return { ok: false, error: "That number looks too high. Check it and try again." };
   return { ok: true, value };
 }
 
-function formatFollowers(count) {
+function formatCount(count) {
   const n = Math.round(Number(count) || 0);
   if (!Number.isFinite(n) || n < 0) return "—";
   if (n < 1000) return String(n);
@@ -153,9 +172,17 @@ function formatFollowers(count) {
   return text + suffix;
 }
 
-function followerCount(answers = state.answers) {
-  const n = Number(answers.followers);
+function numericAnswer(id, answers = state.answers) {
+  const n = Number(answers[id]);
   return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function followerCount(answers = state.answers) {
+  return numericAnswer("followers", answers);
+}
+
+function likesCount(answers = state.answers) {
+  return numericAnswer("likes", answers);
 }
 
 function followerReach(count) {
@@ -262,8 +289,7 @@ function nichePhrase(answers) {
 function buildTips(answers) {
   const tips = [];
   const niche = nichePhrase(answers);
-  const likes = firstOption("likes", answers);
-  const erScore = engagementScore(followerCount(answers), likes && likes.mid);
+  const erScore = engagementScore(followerCount(answers), likesCount(answers));
   const nothing = hasAnswer("blocker", "nothing", answers);
 
   if (nothing) {
@@ -329,7 +355,7 @@ function blockerDisplay(answers) {
 
 function scoreAnswers(answers) {
   const followers = followerCount(answers);
-  const likes = firstOption("likes", answers);
+  const likes = likesCount(answers);
   const consistency = firstOption("consistency", answers);
   const trend = firstOption("trend", answers);
   const blockerOpts = selectedOptions("blocker", answers);
@@ -341,7 +367,7 @@ function scoreAnswers(answers) {
 
   const raw =
     (consistency && consistency.score ? consistency.score : 0) +
-    engagementScore(followers, likes && likes.mid) +
+    engagementScore(followers, likes) +
     (trend && trend.score ? trend.score : 0) +
     blockerPts +
     averageScore(missionOpts) +
@@ -354,8 +380,8 @@ function scoreAnswers(answers) {
     score,
     label: scoreLabel(score),
     niches: selectedLabels("niche", answers),
-    followers: formatFollowers(followers),
-    likes: (likes && likes.label) || "—",
+    followers: formatCount(followers),
+    likes: formatCount(likes),
     blockers: blockerDisplay(answers),
     opportunities: selectedLabels("opportunities", answers),
     missions: selectedLabels("mission", answers),
@@ -478,11 +504,15 @@ function renderQuestion() {
     root.className = "options hidden";
     root.innerHTML = "";
     showCountError("");
-    const raw = state.answers.followersRaw;
-    if (raw != null && raw !== "") $("countInput").value = raw;
-    else if (Number.isFinite(state.answers.followers)) $("countInput").value = String(state.answers.followers);
-    else $("countInput").value = "";
-    window.requestAnimationFrame(() => $("countInput").focus());
+    const cfg = countConfig(q);
+    const input = $("countInput");
+    input.placeholder = cfg.placeholder;
+    input.setAttribute("aria-label", cfg.label);
+    const raw = state.answers[q.id + "Raw"];
+    if (raw != null && raw !== "") input.value = raw;
+    else if (Number.isFinite(state.answers[q.id])) input.value = String(state.answers[q.id]);
+    else input.value = "";
+    window.requestAnimationFrame(() => input.focus());
     return;
   }
 
@@ -552,15 +582,15 @@ function continueQuiz() {
   const q = QUESTIONS[state.index];
   if (isCountQuestion(q)) {
     const raw = $("countInput").value;
-    const parsed = parseFollowerInput(raw);
+    const parsed = parseCountInput(raw, q);
     if (!parsed.ok) {
       showCountError(parsed.error);
       $("countInput").focus();
       return;
     }
     showCountError("");
-    state.answers.followers = parsed.value;
-    state.answers.followersRaw = String(raw).trim();
+    state.answers[q.id] = parsed.value;
+    state.answers[q.id + "Raw"] = String(raw).trim();
     advance();
     return;
   }
