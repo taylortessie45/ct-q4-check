@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CT Q4 Check</title>
-  <meta name="description" content="Drop your X handle. See how big Q4 will be for you." />
+  <meta name="description" content="Get your 2026 Q4 Growth Card." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -15,7 +15,7 @@
     <section class="card" id="card">
       <header class="brand" id="brand">
         <button type="button" id="homeLink" class="logo">CT Q4 Check</button>
-        <p class="tagline" id="tagline">Drop your X handle. See how big Q4 will be for you.</p>
+        <p class="tagline" id="tagline">Get your 2026 Q4 Growth Card.</p>
       </header>
 
       <div id="home">
@@ -35,12 +35,15 @@
         </div>
         <div class="bar" aria-hidden="true"><div class="bar-fill" id="barFill"></div></div>
         <h2 class="question" id="question"></h2>
+        <p class="hint hidden" id="quizHint"></p>
         <div class="options" id="options"></div>
+        <button class="go hidden" id="continueBtn" type="button">Continue</button>
       </div>
 
       <div id="result" class="result hidden">
         <div id="shareCard" class="share-card">
-          <div class="card-brand">CT Q4 Check</div>
+          <div class="year">2026</div>
+          <div class="card-title">Your Q4 Growth Card</div>
           <div class="hero">
             <div class="pfp-wrap"><img id="pfp" alt="Profile picture" /></div>
             <div class="handle" id="youHandle"></div>
@@ -49,16 +52,37 @@
             <div class="score" id="score"></div>
             <div class="label" id="label"></div>
           </div>
-          <div class="chips" id="chips"></div>
-          <div class="box">
-            <div class="box-label">Top strength</div>
-            <p id="strength"></p>
+          <div class="chips" id="nicheChips"></div>
+          <div class="facts">
+            <div class="fact">
+              <div class="box-label">Focus</div>
+              <p id="focus"></p>
+            </div>
+            <div class="fact">
+              <div class="box-label">Biggest win</div>
+              <p id="win"></p>
+            </div>
+            <div class="fact">
+              <div class="box-label">Holding you back</div>
+              <p id="blocker"></p>
+            </div>
+            <div class="fact">
+              <div class="box-label">Leveling up</div>
+              <p id="skill"></p>
+            </div>
+          </div>
+          <div class="box open-box">
+            <div class="box-label">Open to</div>
+            <div class="chips" id="openChips"></div>
           </div>
           <div class="box">
-            <div class="box-label">Focus on</div>
+            <div class="box-label">Q4 mission</div>
+            <p id="mission"></p>
+          </div>
+          <div class="box tips-box">
+            <div class="box-label">Tips</div>
             <ul id="tips"></ul>
           </div>
-          <div class="progress" id="progress"></div>
         </div>
         <div class="actions">
           <button class="share" id="downloadBtn" type="button">Download card</button>
