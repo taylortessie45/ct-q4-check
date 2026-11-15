@@ -2,11 +2,15 @@
 
 const $ = (id) => document.getElementById(id);
 const HANDLE_RE = /^[A-Za-z0-9_]{1,15}$/;
+const MULTI_HINT = "Select all that apply, then continue.";
+const SCORE_COLOR = "#ffc46a";
 
 const QUESTIONS = [
   {
     id: "niche",
     text: "What's your main niche?",
+    multi: true,
+    hint: MULTI_HINT,
     layout: "grid-3",
     options: [
       { value: "NFTs", label: "NFTs" },
@@ -63,6 +67,8 @@ const QUESTIONS = [
   {
     id: "blocker",
     text: "What's holding you back from reaching your goals?",
+    multi: true,
+    hint: MULTI_HINT,
     options: [
       { value: "consistency", label: "Consistency", sub: "I start strong, then stop", score: 4 },
       { value: "time", label: "Time", sub: "Busy with work/life", score: 9 },
@@ -70,6 +76,7 @@ const QUESTIONS = [
       { value: "plan", label: "No clear plan", sub: "Not sure what to post", score: 5 },
       { value: "network", label: "Network", sub: "Don't know the right people", score: 12 },
       { value: "funds", label: "Funds", sub: "No money to invest/grow", score: 10 },
+      { value: "nothing", label: "Nothing", sub: "I'm doing good with what I do", score: 15 },
       { value: "other", label: "Something else", sub: "I'll type it in", score: 8 },
     ],
   },
@@ -77,7 +84,7 @@ const QUESTIONS = [
     id: "opportunities",
     text: "What kind of opportunities are you looking for?",
     multi: true,
-    hint: "Select all that apply, then continue.",
+    hint: MULTI_HINT,
     options: [
       { value: "collaborations", label: "Collaborations" },
       { value: "partnerships", label: "Partnerships" },
@@ -89,7 +96,9 @@ const QUESTIONS = [
   },
   {
     id: "mission",
-    text: "What's one thing you're determined to change before the year ends?",
+    text: "What are you determined to change before the year ends?",
+    multi: true,
+    hint: MULTI_HINT,
     options: [
       { value: "daily", label: "Post daily", score: 7 },
       { value: "followers", label: "Hit a follower goal", score: 6 },
@@ -111,6 +120,66 @@ function clamp(n, min, max) {
   return Math.max(min, Math.min(max, n));
 }
 
+function cleanText(value) {
+  return String(value == null ? "" : value)
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function asArray(value) {
+  if (Array.isArray(value)) return value.filter((v) => v != null && v !== "");
+  if (value == null || value === "") return [];
+  return [value];
+}
+
+function selectedValues(id, answers = state.answers) {
+  return asArray(answers[id]);
+}
+
+function optionByValue(id, value) {
+  const q = QUESTIONS.find((item) => item.id === id);
+  if (!q) return null;
+  return q.options.find((o) => o.value === value) || null;
+}
+
+function optionLabel(id, value) {
+  const opt = optionByValue(id, value);
+  return cleanText(opt ? opt.label : "");
+}
+
+function selectedOptions(id, answers = state.answers) {
+  return selectedValues(id, answers)
+    .map((value) => optionByValue(id, value))
+    .filter(Boolean);
+}
+
+function selectedLabels(id, answers = state.answers) {
+  return selectedOptions(id, answers).map((opt) => cleanText(opt.label)).filter(Boolean);
+}
+
+function hasAnswer(id, value, answers = state.answers) {
+  return selectedValues(id, answers).includes(value);
+}
+
+function firstOption(id, answers = state.answers) {
+  return selectedOptions(id, answers)[0] || null;
+}
+
+function listPhrase(labels) {
+  const clean = (labels || []).map(cleanText).filter(Boolean);
+  if (!clean.length) return "";
+  if (clean.length === 1) return clean[0];
+  if (clean.length === 2) return clean[0] + " and " + clean[1];
+  return clean.slice(0, -1).join(", ") + ", and " + clean[clean.length - 1];
+}
+
+function averageScore(opts) {
+  if (!opts.length) return 0;
+  const total = opts.reduce((sum, opt) => sum + (Number(opt.score) || 0), 0);
+  return total / opts.length;
+}
+
 function scoreLabel(score) {
   if (score >= 80) return "Q4 Giga Chad";
   if (score >= 60) return "Q4 Ready";
@@ -119,107 +188,120 @@ function scoreLabel(score) {
   return "Q4 Sleeper";
 }
 
-function optionByValue(id, value) {
-  const q = QUESTIONS.find((item) => item.id === id);
-  return q.options.find((o) => o.value === value);
+function engagementScore(followersMid, likesMid) {
+  const followers = Number(followersMid) || 0;
+  const likes = Number(likesMid) || 0;
+  const er = followers > 0 ? (likes / followers) * 100 : 0;
+  if (er <= 0) return 0;
+  return clamp(Math.round(30 * (1 - Math.exp(-er / 1.4))), 0, 30);
 }
 
-function optionLabel(id, value) {
-  const opt = optionByValue(id, value);
-  return opt ? opt.label : "";
+function nichePhrase(answers) {
+  return listPhrase(selectedLabels("niche", answers)) || "your niche";
 }
 
 function buildTips(answers) {
   const tips = [];
-  const niche = answers.niche;
-  const followers = optionByValue("followers", answers.followers);
-  const likes = optionByValue("likes", answers.likes);
-  const erScore = engagementScore(followers.mid, likes.mid);
+  const niche = nichePhrase(answers);
+  const followers = firstOption("followers", answers);
+  const likes = firstOption("likes", answers);
+  const erScore = engagementScore(followers && followers.mid, likes && likes.mid);
+  const nothing = hasAnswer("blocker", "nothing", answers);
 
-  if (answers.blocker === "consistency" || answers.consistency === "irregular") {
+  if (nothing) {
+    tips.push("You're locked in — scale what already works and spend more time in bigger " + niche + " rooms.");
+  } else if (hasAnswer("blocker", "consistency", answers) || hasAnswer("consistency", "irregular", answers)) {
     tips.push("Lock a 20-minute daily slot like a mint time — one post beats a burst and a silence.");
-  } else if (answers.blocker === "time") {
+  } else if (hasAnswer("blocker", "time", answers)) {
     tips.push("Batch content twice a week so busy days don't kill your streak.");
-  } else if (answers.blocker === "engagement") {
+  } else if (hasAnswer("blocker", "engagement", answers)) {
     tips.push("Reply under bigger accounts in " + niche + " and lead with a sharper first line.");
-  } else if (answers.blocker === "plan") {
+  } else if (hasAnswer("blocker", "plan", answers)) {
     tips.push("Write a one-page Q4 plan: one goal, one weekly action, one number you track.");
-  } else if (answers.blocker === "network") {
+  } else if (hasAnswer("blocker", "network", answers)) {
     tips.push("Start 3 genuine convos a day with people already in " + niche + ".");
-  } else if (answers.blocker === "funds") {
+  } else if (hasAnswer("blocker", "funds", answers)) {
     tips.push("Trade time for leverage — collabs and proof of work beat waiting on capital.");
-  } else if (answers.blocker === "other") {
+  } else if (hasAnswer("blocker", "other", answers)) {
     tips.push("Write the blocker down, then pick one weekly action that chips away at it.");
   }
 
-  if (answers.trend === "down" && tips.length < 3) {
+  if (hasAnswer("trend", "down", answers) && tips.length < 3) {
     tips.push("Engagement slipped last month — bounce back with tighter hooks and more visuals.");
   }
-  if (erScore < 14 && answers.blocker !== "engagement" && tips.length < 3) {
+  if (erScore < 14 && !hasAnswer("blocker", "engagement", answers) && tips.length < 3) {
     tips.push("Reply under bigger accounts in " + niche + " to lift likes relative to your following.");
   }
-  if (answers.consistency === "weekly" && tips.length < 3) {
+  if (hasAnswer("consistency", "weekly", answers) && tips.length < 3) {
     tips.push("Bump to most days so the algo and your audience both remember you.");
-  } else if (answers.consistency === "daily" && tips.length < 3) {
+  } else if (hasAnswer("consistency", "daily", answers) && tips.length < 3) {
     tips.push("You're already showing up. Raise the quality now — fewer filler posts, stronger takes.");
-  } else if (answers.consistency === "most" && tips.length < 3) {
+  } else if (hasAnswer("consistency", "most", answers) && tips.length < 3) {
     tips.push("Protect the streak through Q4, then raise the quality of each post.");
   }
 
-  if (tips.length < 3 && answers.mission === "daily") {
+  if (tips.length < 3 && hasAnswer("mission", "daily", answers)) {
     tips.push("Queue tomorrow's post tonight so the daily streak is already won.");
-  } else if (tips.length < 3 && answers.mission === "followers") {
+  } else if (tips.length < 3 && hasAnswer("mission", "followers", answers)) {
     tips.push("Pair a daily post with replies under larger " + niche + " accounts to grow faster.");
-  } else if (tips.length < 3 && answers.mission === "overtrading") {
+  } else if (tips.length < 3 && hasAnswer("mission", "overtrading", answers)) {
     tips.push("Write the thesis before you size in — and review the trade, not just the entry.");
-  } else if (tips.length < 3 && answers.mission === "ship") {
+  } else if (tips.length < 3 && hasAnswer("mission", "ship", answers)) {
     tips.push("Ship something small in public every week, even if it's ugly.");
-  } else if (tips.length < 3 && answers.mission === "connections") {
+  } else if (tips.length < 3 && hasAnswer("mission", "connections", answers)) {
     tips.push("Give value in replies and DMs first. Opportunities follow the people who show up.");
-  } else if (tips.length < 3 && answers.mission === "brand") {
+  } else if (tips.length < 3 && hasAnswer("mission", "brand", answers)) {
     tips.push("Make " + niche + " obvious in your bio, pinned post, and every hook.");
   }
   if (tips.length < 2) {
     tips.push("Make " + niche + " obvious in your bio, pinned post, and every hook.");
   }
-  return tips.slice(0, 3);
+  return tips.slice(0, 3).map(cleanText);
 }
 
-function engagementScore(followersMid, likesMid) {
-  const er = followersMid > 0 ? (likesMid / followersMid) * 100 : 0;
-  if (er <= 0) return 0;
-  return clamp(Math.round(30 * (1 - Math.exp(-er / 1.4))), 0, 30);
+function blockerDisplay(answers) {
+  if (hasAnswer("blocker", "nothing", answers)) return ["Nothing — locked in"];
+  return selectedValues("blocker", answers)
+    .map((value) => {
+      if (value === "other") return cleanText(answers.blockerOther || "Something else");
+      return optionLabel("blocker", value);
+    })
+    .filter(Boolean);
 }
 
 function scoreAnswers(answers) {
-  const followers = optionByValue("followers", answers.followers);
-  const likes = optionByValue("likes", answers.likes);
-  const consistency = optionByValue("consistency", answers.consistency);
-  const trend = optionByValue("trend", answers.trend);
-  const blocker = optionByValue("blocker", answers.blocker);
-  const mission = optionByValue("mission", answers.mission);
-  const score = clamp(
-    (consistency.score || 0) +
-      engagementScore(followers.mid, likes.mid) +
-      (trend.score || 0) +
-      (blocker.score || 0) +
-      (mission.score || 0) +
-      (followers.reach || 0),
-    0,
-    100
-  );
+  const followers = firstOption("followers", answers);
+  const likes = firstOption("likes", answers);
+  const consistency = firstOption("consistency", answers);
+  const trend = firstOption("trend", answers);
+  const blockerOpts = selectedOptions("blocker", answers);
+  const missionOpts = selectedOptions("mission", answers);
+  const nothing = hasAnswer("blocker", "nothing", answers);
+
+  let blockerPts = averageScore(blockerOpts);
+  if (nothing) blockerPts = 20;
+
+  const raw =
+    (consistency && consistency.score ? consistency.score : 0) +
+    engagementScore(followers && followers.mid, likes && likes.mid) +
+    (trend && trend.score ? trend.score : 0) +
+    blockerPts +
+    averageScore(missionOpts) +
+    (followers && followers.reach ? followers.reach : 0);
+
+  let score = clamp(Math.round(Number(raw) || 0), 0, 100);
+  if (!Number.isFinite(score)) score = 0;
+
   return {
     score,
     label: scoreLabel(score),
-    niche: answers.niche,
-    followers: followers.label,
-    likes: likes.label,
-    blocker: answers.blocker === "other"
-      ? (answers.blockerOther || "Something else")
-      : blocker.label,
-    opportunities: (answers.opportunities || []).map((value) => optionLabel("opportunities", value)),
-    mission: mission.label,
-    trend,
+    niches: selectedLabels("niche", answers),
+    followers: (followers && followers.label) || "—",
+    likes: (likes && likes.label) || "—",
+    blockers: blockerDisplay(answers),
+    opportunities: selectedLabels("opportunities", answers),
+    missions: selectedLabels("mission", answers),
+    trend: trend || null,
     tips: buildTips(answers),
   };
 }
@@ -266,38 +348,32 @@ function startQuiz() {
   renderQuestion();
 }
 
-function selectedValues(id) {
-  const raw = state.answers[id];
-  if (Array.isArray(raw)) return raw;
-  if (raw) return [raw];
-  return [];
-}
-
-function isOtherSelected(q) {
-  return Boolean(q && !q.multi && state.answers[q.id] === "other");
+function isOtherOpen() {
+  const q = QUESTIONS[state.index];
+  return Boolean(q && q.id === "blocker" && hasAnswer("blocker", "other") && !hasAnswer("blocker", "nothing"));
 }
 
 function updateContinue() {
   const q = QUESTIONS[state.index];
   const btn = $("continueBtn");
   const wrap = $("otherWrap");
-  if (q.multi) {
+  if (!q.multi) {
     wrap.classList.add("hidden");
-    btn.classList.remove("hidden");
-    btn.disabled = selectedValues(q.id).length === 0;
+    btn.classList.add("hidden");
     return;
   }
-  if (isOtherSelected(q)) {
+
+  btn.classList.remove("hidden");
+  if (isOtherOpen()) {
     wrap.classList.remove("hidden");
-    btn.classList.remove("hidden");
     if ($("otherInput").value !== (state.answers.blockerOther || "")) {
       $("otherInput").value = state.answers.blockerOther || "";
     }
-    btn.disabled = !$("otherInput").value.trim();
-    return;
+    btn.disabled = selectedValues(q.id).length === 0 || !$("otherInput").value.trim();
+  } else {
+    wrap.classList.add("hidden");
+    btn.disabled = selectedValues(q.id).length === 0;
   }
-  wrap.classList.add("hidden");
-  btn.classList.add("hidden");
 }
 
 function advance() {
@@ -353,41 +429,52 @@ function renderQuestion() {
   });
 }
 
+function setPicked(value, selected) {
+  $("options").querySelectorAll(".option").forEach((el) => {
+    const title = el.querySelector(".option-title");
+    const label = title ? title.textContent : el.textContent;
+    const opt = QUESTIONS[state.index].options.find((o) => o.label === label);
+    if (opt && opt.value === value) el.classList.toggle("picked", selected);
+  });
+}
+
 function pickOption(q, value, btn) {
-  if (q.multi) {
-    const current = new Set(selectedValues(q.id));
-    if (current.has(value)) current.delete(value);
-    else current.add(value);
-    state.answers[q.id] = q.options.map((o) => o.value).filter((v) => current.has(v));
-    btn.classList.toggle("picked");
-    updateContinue();
+  if (!q.multi) {
+    state.answers[q.id] = value;
+    $("options").querySelectorAll(".option").forEach((el) => el.classList.remove("picked"));
+    btn.classList.add("picked");
+    window.setTimeout(advance, 140);
     return;
   }
 
-  state.answers[q.id] = value;
-  if (q.id === "blocker" && value !== "other") delete state.answers.blockerOther;
-  $("options").querySelectorAll(".option").forEach((el) => el.classList.remove("picked"));
-  btn.classList.add("picked");
-  if (value === "other") {
-    updateContinue();
-    $("otherInput").focus();
-    return;
+  let current = new Set(selectedValues(q.id));
+  if (q.id === "blocker" && value === "nothing") {
+    current = current.has("nothing") ? new Set() : new Set(["nothing"]);
+    delete state.answers.blockerOther;
+    $("otherInput").value = "";
+  } else {
+    if (q.id === "blocker") current.delete("nothing");
+    if (current.has(value)) current.delete(value);
+    else current.add(value);
+    if (q.id === "blocker" && value !== "other" && !current.has("other")) {
+      delete state.answers.blockerOther;
+    }
   }
+  state.answers[q.id] = q.options.map((o) => o.value).filter((v) => current.has(v));
+  $("options").querySelectorAll(".option").forEach((el) => el.classList.remove("picked"));
+  current.forEach((v) => setPicked(v, true));
   updateContinue();
-  window.setTimeout(advance, 140);
+  if (value === "other" && current.has("other")) $("otherInput").focus();
 }
 
 function continueQuiz() {
   const q = QUESTIONS[state.index];
-  if (q.multi) {
-    if (selectedValues(q.id).length === 0) return;
-    advance();
-    return;
+  if (!q.multi || selectedValues(q.id).length === 0) return;
+  if (isOtherOpen()) {
+    const text = $("otherInput").value.trim().slice(0, 40);
+    if (!text) return;
+    state.answers.blockerOther = text;
   }
-  if (!isOtherSelected(q)) return;
-  const text = $("otherInput").value.trim().slice(0, 40);
-  if (!text) return;
-  state.answers.blockerOther = text;
   advance();
 }
 
@@ -425,7 +512,7 @@ function setPfp(handle) {
 
 function renderChips(root, items, accentFirst) {
   root.innerHTML = "";
-  (items || []).filter(Boolean).forEach((name, i) => {
+  (items || []).map(cleanText).filter(Boolean).forEach((name, i) => {
     const chip = document.createElement("span");
     chip.className = "chip" + (accentFirst && i === 0 ? " accent" : "");
     chip.textContent = name;
@@ -438,19 +525,22 @@ function renderTips(tips) {
   ul.innerHTML = "";
   (tips || []).forEach((tip) => {
     const li = document.createElement("li");
-    li.textContent = tip;
+    const bullet = document.createElement("span");
+    bullet.className = "bullet";
+    bullet.textContent = "• ";
+    li.appendChild(bullet);
+    li.appendChild(document.createTextNode(cleanText(tip)));
     ul.appendChild(li);
   });
 }
 
-function shareText(data) {
-  return `My 2026 Q4 Growth Card: ${data.score} (${data.label}) 🚀 Q4 mission: ${data.mission}. Get yours 👉 ${window.location.origin}`;
-}
-
 function renderStats(data) {
   $("stats").innerHTML =
-    `<div class="stat"><b>${data.followers}</b><span>Followers</span></div>` +
-    `<div class="stat"><b>${data.likes}</b><span>Avg likes</span></div>`;
+    `<div class="stat"><b></b><span>Followers</span></div>` +
+    `<div class="stat"><b></b><span>Avg likes</span></div>`;
+  const blocks = $("stats").querySelectorAll("b");
+  blocks[0].textContent = data.followers;
+  blocks[1].textContent = data.likes;
 }
 
 function renderProgress(trend) {
@@ -462,9 +552,31 @@ function renderProgress(trend) {
   }
   el.classList.add(trend.direction || "flat");
   const arrow = trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→";
-  el.innerHTML =
-    `<span class="arrow">${arrow}</span>` +
-    `<span class="pct">${trend.phrase}</span>`;
+  const arrowEl = document.createElement("span");
+  arrowEl.className = "arrow";
+  arrowEl.textContent = arrow;
+  const phraseEl = document.createElement("span");
+  phraseEl.className = "pct";
+  phraseEl.textContent = trend.phrase || "";
+  el.innerHTML = "";
+  el.appendChild(arrowEl);
+  el.appendChild(phraseEl);
+}
+
+function shareText(data) {
+  const mission = listPhrase(data.missions) || "Q4";
+  return `My 2026 Q4 Growth Card: ${data.score} (${data.label}) 🚀 Q4 mission: ${mission}. Get yours 👉 ${window.location.origin}`;
+}
+
+function paintScore(el, score) {
+  const num = Number(score);
+  const value = Number.isFinite(num) ? String(Math.round(num)) : "0";
+  el.textContent = value;
+  el.style.color = SCORE_COLOR;
+  el.style.background = "none";
+  el.style.webkitBackgroundClip = "border-box";
+  el.style.backgroundClip = "border-box";
+  el.style.webkitTextFillColor = SCORE_COLOR;
 }
 
 function showResult() {
@@ -473,15 +585,16 @@ function showResult() {
   setView("result");
   setPfp(handle);
   $("youHandle").textContent = `@${handle}`;
-  $("score").textContent = String(data.score);
+  paintScore($("score"), data.score);
   $("label").textContent = data.label;
-  renderChips($("nicheChips"), [data.niche], true);
+  renderChips($("nicheChips"), data.niches, true);
   renderStats(data);
   renderProgress(data.trend);
-  $("blocker").textContent = data.blocker;
+  renderChips($("blockerChips"), data.blockers, false);
   renderChips($("openChips"), data.opportunities, false);
-  $("mission").textContent = data.mission;
+  renderChips($("missionChips"), data.missions, false);
   renderTips(data.tips);
+  $("cardUrl").textContent = window.location.host || "ctq4check";
   $("shareBtn").href =
     "https://x.com/intent/post?text=" + encodeURIComponent(shareText(data));
   $("downloadBtn").dataset.handle = handle;
@@ -497,9 +610,38 @@ function resetAll() {
   $("handle").focus();
 }
 
+function waitForImages(root) {
+  const images = [...root.querySelectorAll("img")];
+  return Promise.all(
+    images.map((img) => {
+      if (img.complete && img.naturalWidth) return Promise.resolve();
+      return new Promise((resolve) => {
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+        setTimeout(resolve, 2000);
+      });
+    })
+  );
+}
+
+function fitCanvas(source, width, height, fill) {
+  const out = document.createElement("canvas");
+  out.width = width;
+  out.height = height;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = fill;
+  ctx.fillRect(0, 0, width, height);
+  const scale = Math.min(width / source.width, height / source.height);
+  const w = source.width * scale;
+  const h = source.height * scale;
+  const x = (width - w) / 2;
+  const y = (height - h) / 2;
+  ctx.drawImage(source, x, y, w, h);
+  return out;
+}
+
 async function downloadCard() {
   const btn = $("downloadBtn");
-  const node = $("shareCard");
   if (typeof html2canvas !== "function") {
     alert("Couldn't load the image tool. Try again.");
     return;
@@ -507,24 +649,46 @@ async function downloadCard() {
   btn.disabled = true;
   const prev = btn.textContent;
   btn.textContent = "Saving…";
+  const mount = $("exportMount");
   try {
     if (document.fonts && document.fonts.ready) {
       await document.fonts.ready;
     }
-    const canvas = await html2canvas(node, {
-      backgroundColor: "#141417",
+    mount.innerHTML = "";
+    const poster = document.createElement("div");
+    poster.className = "export-poster";
+    const clone = $("shareCard").cloneNode(true);
+    clone.id = "shareCardExport";
+    clone.classList.add("export-card");
+    const cloneScore = clone.querySelector(".score");
+    if (cloneScore) paintScore(cloneScore, $("score").textContent);
+    poster.appendChild(clone);
+    mount.appendChild(poster);
+    await waitForImages(clone);
+    await new Promise((r) => setTimeout(r, 50));
+
+    const captured = await html2canvas(poster, {
+      backgroundColor: "#07080d",
       scale: 2,
+      windowWidth: 540,
       useCORS: true,
       logging: false,
+      onclone: (doc) => {
+        const score = doc.querySelector("#shareCardExport .score") || doc.querySelector(".score");
+        if (score) paintScore(score, $("score").textContent);
+      },
     });
+    const out = fitCanvas(captured, 1080, 1350, "#07080d");
     const link = document.createElement("a");
     const handle = btn.dataset.handle || "result";
     link.download = `q4-growth-card-@${handle}.png`;
-    link.href = canvas.toDataURL("image/png");
+    link.href = out.toDataURL("image/png");
     link.click();
-  } catch {
+  } catch (err) {
+    console.error(err);
     alert("Couldn't build the card image. Try a screenshot instead.");
   } finally {
+    mount.innerHTML = "";
     btn.disabled = false;
     btn.textContent = prev;
   }

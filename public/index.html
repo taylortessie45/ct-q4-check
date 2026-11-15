@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CT Q4 Check</title>
   <meta name="description" content="Get your 2026 Q4 Growth Card." />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/styles.css?v={{ASSET_V}}" />
 </head>
 <body>
   <main class="wrap">
@@ -46,14 +47,17 @@
 
       <div id="result" class="result hidden">
         <div id="shareCard" class="share-card">
-          <div class="year">2026</div>
-          <div class="card-title">Your Q4 Growth Card</div>
+          <div class="card-kicker">2026 · Your Q4 Growth Card</div>
           <div class="hero">
             <div class="pfp-wrap"><img id="pfp" alt="Profile picture" /></div>
             <div class="handle" id="youHandle"></div>
           </div>
           <div class="score-block">
-            <div class="score" id="score"></div>
+            <div class="score-ring">
+              <div class="score-ring-inner">
+                <div class="score" id="score"></div>
+              </div>
+            </div>
             <div class="label" id="label"></div>
           </div>
           <div class="chips" id="nicheChips"></div>
@@ -61,7 +65,7 @@
           <div class="progress" id="progress"></div>
           <div class="box">
             <div class="box-label">Holding you back</div>
-            <p id="blocker"></p>
+            <div class="chips" id="blockerChips"></div>
           </div>
           <div class="box open-box">
             <div class="box-label">Open to</div>
@@ -69,12 +73,13 @@
           </div>
           <div class="box">
             <div class="box-label">Q4 mission</div>
-            <p id="mission"></p>
+            <div class="chips" id="missionChips"></div>
           </div>
           <div class="box tips-box">
             <div class="box-label">Tips</div>
             <ul id="tips"></ul>
           </div>
+          <div class="card-url" id="cardUrl"></div>
         </div>
         <div class="actions">
           <button class="share" id="downloadBtn" type="button">Download card</button>
@@ -85,7 +90,9 @@
     </section>
   </main>
 
+  <div id="exportMount" aria-hidden="true"></div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="/app.js"></script>
+  <script src="/app.js?v={{ASSET_V}}"></script>
 </body>
 </html>
