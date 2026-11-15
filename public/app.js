@@ -28,8 +28,7 @@ const QUESTIONS = [
     id: "followers",
     text: "How many followers do you have?",
     input: "count",
-    hint: "e.g. 1k, 1000",
-    placeholder: "e.g. 1k, 1000",
+    placeholder: "Type a number",
     label: "Follower count",
     max: 500000000,
     emptyError: "Enter a number.",
@@ -132,30 +131,29 @@ function countConfig(q) {
   };
 }
 
+function digitsOnly(value) {
+  return String(value == null ? "" : value).replace(/\D/g, "");
+}
+
+function sanitizeCountInput() {
+  const el = $("countInput");
+  const start = el.selectionStart;
+  const before = el.value;
+  const cleaned = digitsOnly(before);
+  if (cleaned !== before) {
+    const cursor = digitsOnly(before.slice(0, start)).length;
+    el.value = cleaned;
+    try { el.setSelectionRange(cursor, cursor); } catch (_) {}
+  }
+  if ($("countErr").classList.contains("show")) showCountError("");
+}
+
 function parseCountInput(raw, q) {
   const cfg = countConfig(q);
-  if (raw == null) return { ok: false, error: cfg.emptyError };
-  const original = String(raw).trim();
-  if (!original) return { ok: false, error: cfg.emptyError };
-
-  const compact = original.replace(/,/g, "").replace(/\s+/g, "");
-  if (/^-/.test(compact)) return { ok: false, error: cfg.negativeError };
-
-  const match = compact.match(/^(\d+(?:\.\d+)?)([kKmM])?$/);
-  if (!match) return { ok: false, error: cfg.invalidError };
-
-  let amount = Number(match[1]);
-  if (!Number.isFinite(amount)) return { ok: false, error: cfg.invalidError };
-
-  const suffix = (match[2] || "").toLowerCase();
-  if (!suffix && /\./.test(match[1])) {
-    return { ok: false, error: "Enter a number." };
-  }
-  if (suffix === "k") amount *= 1000;
-  if (suffix === "m") amount *= 1000000;
-
-  const value = Math.round(amount);
-  if (value < 0) return { ok: false, error: cfg.negativeError };
+  const digits = digitsOnly(raw);
+  if (!digits) return { ok: false, error: cfg.emptyError };
+  const value = Number(digits);
+  if (!Number.isFinite(value) || value < 0) return { ok: false, error: cfg.invalidError };
   if (value > cfg.max) return { ok: false, error: "That number looks too high. Check it and try again." };
   return { ok: true, value };
 }
@@ -836,8 +834,9 @@ $("otherInput").addEventListener("keydown", (e) => {
     continueQuiz();
   }
 });
-$("countInput").addEventListener("input", () => {
-  if ($("countErr").classList.contains("show")) showCountError("");
+$("countInput").addEventListener("input", sanitizeCountInput);
+$("countInput").addEventListener("paste", () => {
+  window.requestAnimationFrame(sanitizeCountInput);
 });
 $("countInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
