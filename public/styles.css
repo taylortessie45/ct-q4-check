@@ -383,15 +383,43 @@ input[type="text"]:focus {
 .share-card {
   position: relative;
   background:
-    radial-gradient(120% 70% at 50% -20%, rgba(255, 196, 106, 0.18), transparent 58%),
+    radial-gradient(120% 70% at 50% -20%, rgba(255, 196, 106, 0.2), transparent 58%),
     radial-gradient(80% 50% at 100% 100%, rgba(255, 77, 141, 0.1), transparent 52%),
     radial-gradient(70% 45% at 0% 90%, rgba(70, 90, 180, 0.12), transparent 50%),
     linear-gradient(180deg, #141722 0%, #0a0c14 100%);
-  border: 1px solid rgba(255, 196, 106, 0.28);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 10px 40px rgba(0, 0, 0, 0.35), 0 0 36px rgba(255, 160, 60, 0.08);
+  border: 1px solid rgba(255, 196, 106, 0.4);
+  box-shadow: 0 0 0 1px rgba(255, 196, 106, 0.1), 0 10px 40px rgba(0, 0, 0, 0.35), 0 0 40px rgba(255, 160, 60, 0.1);
   border-radius: 24px;
   padding: 14px 14px 10px;
   overflow: hidden;
+}
+
+.share-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2718%27%20height%3D%2718%27%20viewBox%3D%270%200%2018%2018%27%3E%3Cpath%20d%3D%27M-1%2019L19%20-1%27%20stroke%3D%27rgba%28255%2C196%2C106%2C0.07%29%27%20stroke-width%3D%271%27/%3E%3Ccircle%20cx%3D%271.2%27%20cy%3D%271.2%27%20r%3D%270.7%27%20fill%3D%27rgba%28255%2C196%2C106%2C0.2%29%27/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 18px 18px;
+  opacity: 1;
+  border-radius: inherit;
+}
+
+.share-card::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(255, 196, 106, 0.22);
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.share-card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .card-kicker {
@@ -445,7 +473,26 @@ input[type="text"]:focus {
 }
 
 .score-block {
+  position: relative;
   margin: 4px 0 6px;
+}
+
+.score-glow {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 210px;
+  height: 210px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle, rgba(255, 196, 106, 0.42) 0%, rgba(255, 122, 26, 0.16) 34%, rgba(255, 77, 141, 0.06) 54%, transparent 70%);
+}
+
+.score-ring,
+.score-block .label {
+  position: relative;
+  z-index: 1;
 }
 
 .score-ring {
@@ -711,6 +758,19 @@ input[type="text"]:focus {
 
 .export-card .handle {
   font-size: 0.86rem;
+}
+
+.export-card .score-glow {
+  width: 280px;
+  height: 280px;
+  top: 42%;
+  background: radial-gradient(circle, rgba(255, 196, 106, 0.46) 0%, rgba(255, 122, 26, 0.18) 34%, rgba(255, 77, 141, 0.07) 54%, transparent 70%);
+}
+
+.export-card::after {
+  inset: 12px;
+  border-radius: 0;
+  border-color: rgba(255, 196, 106, 0.28);
 }
 
 .export-card .score-ring {
