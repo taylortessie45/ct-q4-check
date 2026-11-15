@@ -64,12 +64,13 @@ const QUESTIONS = [
     id: "blocker",
     text: "What's holding you back from reaching your goals?",
     options: [
-      { value: "consistency", label: "Consistency", score: 4 },
-      { value: "time", label: "Time", score: 9 },
-      { value: "engagement", label: "Low engagement", score: 8 },
-      { value: "plan", label: "No clear plan", score: 5 },
-      { value: "network", label: "Network", score: 12 },
-      { value: "funds", label: "Funds", score: 10 },
+      { value: "consistency", label: "Consistency", sub: "I start strong, then stop", score: 4 },
+      { value: "time", label: "Time", sub: "Busy with work/life", score: 9 },
+      { value: "engagement", label: "Low engagement", sub: "Posts don't get seen", score: 8 },
+      { value: "plan", label: "No clear plan", sub: "Not sure what to post", score: 5 },
+      { value: "network", label: "Network", sub: "Don't know the right people", score: 12 },
+      { value: "funds", label: "Funds", sub: "No money to invest/grow", score: 10 },
+      { value: "other", label: "Something else", sub: "I'll type it in", score: 8 },
     ],
   },
   {
@@ -147,6 +148,8 @@ function buildTips(answers) {
     tips.push("Start 3 genuine convos a day with people already in " + niche + ".");
   } else if (answers.blocker === "funds") {
     tips.push("Trade time for leverage — collabs and proof of work beat waiting on capital.");
+  } else if (answers.blocker === "other") {
+    tips.push("Write the blocker down, then pick one weekly action that chips away at it.");
   }
 
   if (answers.trend === "down" && tips.length < 3) {
@@ -211,7 +214,9 @@ function scoreAnswers(answers) {
     niche: answers.niche,
     followers: followers.label,
     likes: likes.label,
-    blocker: blocker.label,
+    blocker: answers.blocker === "other"
+      ? (answers.blockerOther || "Something else")
+      : blocker.label,
     opportunities: (answers.opportunities || []).map((value) => optionLabel("opportunities", value)),
     mission: mission.label,
     trend,
@@ -256,6 +261,7 @@ function startQuiz() {
   state.index = 0;
   state.answers = {};
   $("handle").value = handle;
+  $("otherInput").value = "";
   setView("quiz");
   renderQuestion();
 }
@@ -267,11 +273,40 @@ function selectedValues(id) {
   return [];
 }
 
+function isOtherSelected(q) {
+  return Boolean(q && !q.multi && state.answers[q.id] === "other");
+}
+
 function updateContinue() {
   const q = QUESTIONS[state.index];
   const btn = $("continueBtn");
-  if (!q.multi) return;
-  btn.disabled = selectedValues(q.id).length === 0;
+  const wrap = $("otherWrap");
+  if (q.multi) {
+    wrap.classList.add("hidden");
+    btn.classList.remove("hidden");
+    btn.disabled = selectedValues(q.id).length === 0;
+    return;
+  }
+  if (isOtherSelected(q)) {
+    wrap.classList.remove("hidden");
+    btn.classList.remove("hidden");
+    if ($("otherInput").value !== (state.answers.blockerOther || "")) {
+      $("otherInput").value = state.answers.blockerOther || "";
+    }
+    btn.disabled = !$("otherInput").value.trim();
+    return;
+  }
+  wrap.classList.add("hidden");
+  btn.classList.add("hidden");
+}
+
+function advance() {
+  if (state.index < QUESTIONS.length - 1) {
+    state.index += 1;
+    renderQuestion();
+  } else {
+    showResult();
+  }
 }
 
 function renderQuestion() {
@@ -291,20 +326,28 @@ function renderQuestion() {
     hint.classList.add("hidden");
   }
 
-  const continueBtn = $("continueBtn");
-  continueBtn.classList.toggle("hidden", !q.multi);
   updateContinue();
 
   const root = $("options");
   root.className = "options" + (q.layout === "grid-3" ? " grid-3" : "");
+  if (q.options.some((opt) => opt.sub)) root.classList.add("has-subs");
   root.innerHTML = "";
   const picked = new Set(selectedValues(q.id));
   q.options.forEach((opt) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "option";
+    btn.className = "option" + (opt.sub ? " has-sub" : "");
     if (picked.has(opt.value)) btn.classList.add("picked");
-    btn.textContent = opt.label;
+    const title = document.createElement("span");
+    title.className = "option-title";
+    title.textContent = opt.label;
+    btn.appendChild(title);
+    if (opt.sub) {
+      const sub = document.createElement("span");
+      sub.className = "option-sub";
+      sub.textContent = opt.sub;
+      btn.appendChild(sub);
+    }
     btn.addEventListener("click", () => pickOption(q, opt.value, btn));
     root.appendChild(btn);
   });
@@ -322,27 +365,30 @@ function pickOption(q, value, btn) {
   }
 
   state.answers[q.id] = value;
+  if (q.id === "blocker" && value !== "other") delete state.answers.blockerOther;
   $("options").querySelectorAll(".option").forEach((el) => el.classList.remove("picked"));
   btn.classList.add("picked");
-  window.setTimeout(() => {
-    if (state.index < QUESTIONS.length - 1) {
-      state.index += 1;
-      renderQuestion();
-    } else {
-      showResult();
-    }
-  }, 140);
+  if (value === "other") {
+    updateContinue();
+    $("otherInput").focus();
+    return;
+  }
+  updateContinue();
+  window.setTimeout(advance, 140);
 }
 
-function continueMulti() {
+function continueQuiz() {
   const q = QUESTIONS[state.index];
-  if (!q.multi || selectedValues(q.id).length === 0) return;
-  if (state.index < QUESTIONS.length - 1) {
-    state.index += 1;
-    renderQuestion();
-  } else {
-    showResult();
+  if (q.multi) {
+    if (selectedValues(q.id).length === 0) return;
+    advance();
+    return;
   }
+  if (!isOtherSelected(q)) return;
+  const text = $("otherInput").value.trim().slice(0, 40);
+  if (!text) return;
+  state.answers.blockerOther = text;
+  advance();
 }
 
 function goBack() {
@@ -446,6 +492,7 @@ function resetAll() {
   state.index = 0;
   state.answers = {};
   $("handle").value = "";
+  $("otherInput").value = "";
   showHome();
   $("handle").focus();
 }
@@ -488,7 +535,17 @@ $("handle").addEventListener("keydown", (e) => {
   if (e.key === "Enter") startQuiz();
 });
 $("backBtn").addEventListener("click", goBack);
-$("continueBtn").addEventListener("click", continueMulti);
+$("continueBtn").addEventListener("click", continueQuiz);
+$("otherInput").addEventListener("input", () => {
+  state.answers.blockerOther = $("otherInput").value.slice(0, 40);
+  updateContinue();
+});
+$("otherInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    continueQuiz();
+  }
+});
 $("againBtn").addEventListener("click", resetAll);
 $("homeLink").addEventListener("click", resetAll);
 $("downloadBtn").addEventListener("click", downloadCard);
