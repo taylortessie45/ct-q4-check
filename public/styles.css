@@ -40,6 +40,11 @@ body {
   padding: 28px 0 24px;
 }
 
+.wrap:has(.showing-quiz) {
+  justify-content: center;
+  padding: 16px 0 16px;
+}
+
 .wrap:has(.showing-result) {
   justify-content: flex-start;
   padding: 16px 0 16px;
@@ -50,6 +55,15 @@ body {
   border: 1px solid var(--line);
   border-radius: 24px;
   padding: 28px 22px 24px;
+}
+
+.card.showing-quiz > .brand .tagline,
+.card.showing-result > .brand {
+  display: none;
+}
+
+.card.showing-quiz > .brand {
+  margin-bottom: 16px;
 }
 
 .brand {
@@ -74,15 +88,6 @@ body {
   color: var(--muted);
   font-size: 0.92rem;
   font-weight: 500;
-}
-
-#result .tagline,
-#result .brand {
-  display: none;
-}
-
-.card.showing-result > .brand {
-  display: none;
 }
 
 .field {
@@ -173,6 +178,107 @@ input[type="text"]:focus {
 
 .hidden { display: none !important; }
 
+.quiz-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.back {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.back:hover {
+  color: var(--ink);
+}
+
+.back:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.step {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.bar {
+  height: 6px;
+  border-radius: 999px;
+  background: #0e0e11;
+  border: 1px solid var(--line);
+  overflow: hidden;
+  margin-bottom: 22px;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.question {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.3;
+  margin-bottom: 16px;
+}
+
+.options {
+  display: grid;
+  gap: 8px;
+}
+
+.options.grid-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.option {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #0e0e11;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.options.grid-3 .option {
+  min-height: 44px;
+  padding: 10px 6px;
+  text-align: center;
+  font-size: 0.78rem;
+}
+
+.option:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.option.picked {
+  border-color: transparent;
+  background: var(--accent);
+  color: #1a0d08;
+}
+
 .result {
   text-align: center;
 }
@@ -189,20 +295,6 @@ input[type="text"]:focus {
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 6px;
-}
-
-.demo-badge {
-  display: inline-block;
-  margin: 0 auto 8px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: #0e0e11;
-  color: var(--muted);
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .hero {
@@ -274,7 +366,7 @@ input[type="text"]:focus {
   flex-wrap: wrap;
   justify-content: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .chip {
@@ -291,37 +383,6 @@ input[type="text"]:focus {
   border-color: transparent;
   background: var(--accent);
   color: #1a0d08;
-}
-
-.stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.stat {
-  background: #0e0e11;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 8px 4px;
-}
-
-.stat b {
-  display: block;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.stat span {
-  display: block;
-  margin-top: 2px;
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  color: var(--muted);
 }
 
 .box {
@@ -435,6 +496,8 @@ input[type="text"]:focus {
   .pfp-wrap { width: 80px; height: 80px; }
   .score { font-size: 3.7rem; }
   .wrap { padding: 22px 0 18px; }
+  .wrap:has(.showing-quiz),
   .wrap:has(.showing-result) { padding: 12px 0 12px; }
+  .wrap:has(.showing-quiz) { justify-content: center; }
   .share { height: 46px; }
 }
