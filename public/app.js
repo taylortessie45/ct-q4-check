@@ -94,6 +94,7 @@ const QUESTIONS = [
       { value: "investments", label: "Investments" },
       { value: "networking", label: "Networking" },
       { value: "community", label: "Community building" },
+      { value: "other", label: "Something else", sub: "I'll type it in" },
     ],
   },
   {
@@ -283,61 +284,458 @@ function nichePhrase(answers) {
   return listPhrase(selectedLabels("niche", answers)) || "your niche";
 }
 
-function buildTips(answers) {
-  const tips = [];
-  const niche = nichePhrase(answers);
-  const erScore = engagementScore(followerCount(answers), likesCount(answers));
-  const nothing = hasAnswer("blocker", "nothing", answers);
+function hashSeed(str) {
+  let h = 2166136261;
+  const s = String(str || "");
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 
-  if (nothing) {
-    tips.push("You are locked in. Scale what already works and spend more time in bigger " + niche + " rooms.");
-  } else if (hasAnswer("blocker", "consistency", answers) || hasAnswer("consistency", "irregular", answers)) {
-    tips.push("Lock a 20 minute daily slot like a mint time. One post beats a burst and a silence.");
-  } else if (hasAnswer("blocker", "time", answers)) {
-    tips.push("Batch content twice a week so busy days don't kill your streak.");
-  } else if (hasAnswer("blocker", "engagement", answers)) {
-    tips.push("Reply under bigger accounts in " + niche + " and lead with a sharper first line.");
-  } else if (hasAnswer("blocker", "plan", answers)) {
-    tips.push("Write a one page Q4 plan: one goal, one weekly action, one number you track.");
-  } else if (hasAnswer("blocker", "network", answers)) {
-    tips.push("Start 3 genuine convos a day with people already in " + niche + ".");
-  } else if (hasAnswer("blocker", "funds", answers)) {
-    tips.push("Trade time for leverage. Collabs and proof of work beat waiting on capital.");
-  } else if (hasAnswer("blocker", "other", answers)) {
-    tips.push("Write the blocker down, then pick one weekly action that chips away at it.");
+function pickFrom(list, seed, salt) {
+  if (!list || !list.length) return "";
+  return list[hashSeed(String(seed) + "::" + salt) % list.length];
+}
+
+function fillTip(template, vars) {
+  return String(template || "").replace(/\{(\w+)\}/g, (_, key) => (
+    vars[key] == null ? "" : String(vars[key])
+  ));
+}
+
+function sanitizeTip(text) {
+  return String(text || "")
+    .replace(/[—–−‒―]/g, " ")
+    .replace(/\s+-\s+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function formatRate(rate) {
+  if (!Number.isFinite(rate) || rate <= 0) return "0";
+  if (rate < 1) return String(Math.round(rate * 100) / 100).replace(/0+$/, "").replace(/\.$/, "");
+  if (rate < 10) return String(Math.round(rate * 10) / 10).replace(/\.0$/, "");
+  return String(Math.round(rate));
+}
+
+function rateBand(rate) {
+  if (rate < 0.5) return "veryLow";
+  if (rate < 1.5) return "low";
+  if (rate < 5) return "healthy";
+  return "high";
+}
+
+function followerTier(count) {
+  if (count < 500) return "micro";
+  if (count < 2000) return "early";
+  if (count < 10000) return "mid";
+  if (count < 50000) return "large";
+  return "huge";
+}
+
+function tipSeed(answers, handle) {
+  return [
+    handle || "",
+    selectedValues("niche", answers).join(","),
+    String(followerCount(answers)),
+    String(likesCount(answers)),
+    selectedValues("consistency", answers)[0] || "",
+    selectedValues("trend", answers)[0] || "",
+    selectedValues("blocker", answers).join(","),
+    answers.blockerOther || "",
+    selectedValues("opportunities", answers).join(","),
+    answers.opportunitiesOther || "",
+    selectedValues("mission", answers).join(","),
+  ].join("|");
+}
+
+function tipVars(answers, handle) {
+  const followers = followerCount(answers);
+  const likes = likesCount(answers);
+  const rate = followers > 0 ? (likes / followers) * 100 : 0;
+  const writeIn = (value) => cleanText(value).replace(/[-—–−‒―]/g, " ").replace(/\s+/g, " ").trim();
+  return {
+    handle: handle || "friend",
+    niches: nichePhrase(answers),
+    followers: formatCount(followers),
+    likes: formatCount(likes),
+    rate: formatRate(rate),
+    blockerOther: writeIn(answers.blockerOther) || "that",
+    oppOther: writeIn(answers.opportunitiesOther) || "that",
+    _followers: followers,
+    _likes: likes,
+    _rate: rate,
+    _band: rateBand(rate),
+    _tier: followerTier(followers),
+  };
+}
+
+const NICHE_TIPS = {
+  NFTs: [
+    "In NFTs, show the art and the reason you minted, not just a floor price update. Taste is the product.",
+    "Jump into collection Spaces after a mint day. People buy from voices they have already heard.",
+    "Reply under collection threads in the first 20 minutes with a sharp take, not just gm. That is how NFT accounts get seen.",
+    "Pin a short thread on the artists or collections you actually believe in so new visitors get your taste fast.",
+  ],
+  Memecoins: [
+    "In memecoins, speed and clarity win. Post the setup, the invalidation, and a screenshot, then stay in the replies.",
+    "Avoid empty hype posts. A calm, early thread with risk laid out is what gets bookmarked in meme rooms.",
+    "Be in the main meme coin threads when US hours open. Early, funny, and precise replies travel farther than late calls.",
+  ],
+  DeFi: [
+    "In DeFi, teach one mechanic a week in a thread. People follow the account that makes yields and risks simple.",
+    "Post a plain English walkthrough of a protocol you use, including the risk. That is how DeFi accounts earn trust.",
+    "Jump into protocol Spaces and ask the question everyone is thinking. Useful curiosity builds a DeFi brand.",
+  ],
+  "Alpha/Calls": [
+    "For alpha and calls, timestamp the idea, add the invalidation, and never hide the miss. Track record is the brand.",
+    "Pin a performance thread with wins and losses. Call accounts grow when people can audit you.",
+    "Keep calls short and the recap honest. A weekly scorecard post will separate you from noise accounts.",
+  ],
+  Airdrops: [
+    "In airdrops, share the steps and the risk, not just a link dump. A clear checklist thread gets saves and follows.",
+    "Post a weekly recap of what you farmed and why. Consistent, honest farming notes build an airdrop audience.",
+    "Be early in farming chats and Spaces, then publish the playbook the same day while people still need it.",
+  ],
+  Gaming: [
+    "In gaming, clip a highlight, add your take, and post it while the match or mint is still live.",
+    "Host a short Space after a patch or drop. Gaming rooms follow accounts that show up in the moment.",
+    "A weekly recap of what you played, earned, or missed is stronger than random screenshots.",
+  ],
+  AI: [
+    "In AI, show the workflow, not just the output. A before and after thread of a prompt or agent gets saved.",
+    "Post one practical AI tool or prompt a day that crypto people can use in research or content.",
+    "Join AI plus crypto Spaces and demo something live. Builders follow accounts that show work, not slogans.",
+  ],
+  Builder: [
+    "As a builder, ship in public every week and pin the latest demo. CT funds and follows what it can click.",
+    "Post a build log: what shipped, what broke, what is next. That rhythm attracts users and other builders.",
+    "Drop a short demo clip in the first post, then a thread with how it works. Builders who teach get the DMs.",
+  ],
+  Shitposting: [
+    "Shitposting still needs a recognizable voice. Make the joke tight, post when the timeline is active, and stay in the replies.",
+    "Pair the meme with a real opinion so people remember you when the joke fades.",
+    "Quote a live CT moment fast. Timing is the skill, and a pinned best of thread shows the range.",
+  ],
+};
+
+const RATE_TIPS = {
+  veryLow: [
+    "Your {likes} likes on {followers} followers is a {rate}% rate, which is very low. Spend 30 minutes in reply windows under bigger {niches} accounts right after they post.",
+    "A {rate}% like rate on {followers} followers means posts are not landing. Lead with a sharper first line and a visual, then reply while the big {niches} threads are still fresh.",
+    "@{handle}, {likes} likes at {followers} followers is a {rate}% rate. Jump into live Spaces and reply in the first 15 minutes of bigger posts to get seen.",
+  ],
+  low: [
+    "Your {likes} likes on {followers} followers is a {rate}% rate, which is on the low side for CT. Reply under larger {niches} accounts in the first 20 minutes they post.",
+    "A {rate}% like rate at {followers} followers can improve fast. Add a visual to every post and stay in the replies of the first hour.",
+    "@{handle}, {likes} likes on {followers} followers is a {rate}% rate. Test a bolder hook for seven days and keep only what gets saves.",
+  ],
+  healthy: [
+    "Your {likes} likes on {followers} followers is a {rate}% rate, which is solid. Keep that format and post it when US timelines are waking up.",
+    "A {rate}% like rate at {followers} followers is healthy. Turn your best post of the week into a short thread and pin it.",
+    "@{handle}, {likes} likes on {followers} followers is a {rate}% rate. You have a working format, so repeat it on the days you usually get reach.",
+  ],
+  high: [
+    "Your {likes} likes on {followers} followers is a {rate}% rate, which is strong. Turn those winning posts into a pinned thread so new visitors see your best work first.",
+    "A {rate}% like rate at {followers} followers is excellent. Package that format into a weekly series so people know when to show up.",
+    "@{handle}, {likes} likes on {followers} followers is a {rate}% rate, which is strong. Host a Space on the same topic while that attention is still warm.",
+  ],
+};
+
+const TIER_TIPS = {
+  micro: [
+    "At {followers} followers, replies beat original posts for reach. Sit in 3 busy {niches} threads a day and leave a real take.",
+    "With {followers} followers, a daily useful reply in {niches} rooms will grow you faster than a quiet original post.",
+    "@{handle}, at {followers} followers your job is to be early and useful in {niches} threads, not to shout into an empty timeline.",
+  ],
+  early: [
+    "From {followers} followers, a tight personal brand starts to compound. Make {niches} obvious in your bio and pinned post.",
+    "At {followers} followers, one clear point of view plus daily replies will move you through the next stage faster than random posts.",
+    "@{handle}, with {followers} followers you are past zero. Publish a weekly {niches} recap so people have a reason to follow.",
+  ],
+  mid: [
+    "At {followers} followers you can start attracting collabs. Publish one useful {niches} breakdown a week and ask one person to hop on a Space.",
+    "With {followers} followers, turn your best replies into original posts. That is how mid size {niches} accounts cross 10K.",
+    "@{handle}, at {followers} followers people notice consistency. A fixed weekly thread or Space gives them a reason to come back.",
+  ],
+  large: [
+    "With {followers} followers, host a weekly Space or a collab thread. Your replies still move {niches} rooms more than lurkers think.",
+    "At {followers} followers, use the reach to lift smaller voices in {niches} and ask for one serious collab a week.",
+    "@{handle}, {followers} followers is enough to set the room. Pin a proof of work thread and invite people into a regular Space.",
+  ],
+  huge: [
+    "At {followers} followers, people already watch you. Post less often, make stronger calls, and keep a pinned proof of work.",
+    "With {followers} followers, your name carries rooms. Protect the signal and let fewer, better {niches} posts do the work.",
+    "@{handle}, at {followers} followers the next leap is curation and Spaces, not more volume.",
+  ],
+};
+
+const CONSIST_TIPS = {
+  irregular: [
+    "Your posting is on and off, which resets the algo. Lock a 20 minute slot like a mint time and show up every day for two weeks.",
+    "CT forgets quiet accounts fast. Queue one post the night before so @{handle} never misses a day.",
+    "On and off posting is the main leak. Write 5 short {niches} posts on Sunday and schedule them through the week.",
+  ],
+  weekly: [
+    "A few times a week is not enough for the algo to remember you. Bump to most days, even if the post is short.",
+    "Weekly posting leaves too many quiet days. Add a daily reply block in {niches} threads even when you do not have a full post.",
+    "@{handle}, move from a few posts a week to most days for this Q4 sprint and reassess after 30 days.",
+  ],
+  most: [
+    "You already post most days. Protect that streak and spend the extra time writing a stronger first line.",
+    "Most days is a good base. Keep it through Q4, then raise the quality of each {niches} post rather than adding volume.",
+    "@{handle}, you are almost daily. Queue tomorrow's post tonight so a busy day cannot break the streak.",
+  ],
+  daily: [
+    "You already post daily, so quality is the lever now. Cut filler and make every hook worth a follow.",
+    "Daily posting is done. Use the extra discipline on replies and a weekly {niches} thread that can be pinned.",
+    "@{handle}, you already show up every day. Raise the bar: fewer filler posts, stronger takes, cleaner visuals.",
+  ],
+};
+
+const TREND_TIPS = {
+  down: [
+    "Engagement is down versus last month. Bounce back with tighter hooks, a visual on every post, and faster replies under bigger accounts.",
+    "The last 30 days slipped. Audit which {niches} posts died, then reuse only the hook styles that still got replies.",
+    "@{handle}, engagement is down versus last month. Spend a week in reply windows and Spaces before you judge the next format.",
+  ],
+  flat: [
+    "Engagement is flat versus last month. Change the hook style for a week and track which posts break the pattern.",
+    "A flat 30 days is a signal to test, not to disappear. Try a thread, a visual, and a Space, then keep the winner.",
+  ],
+  up: [
+    "Engagement is up versus last month. Double down on the formats that caused the lift and pin the best one.",
+    "The last 30 days are up. Ride that with a follow up thread and a Space this week while people are already watching.",
+  ],
+  wayup: [
+    "Engagement is way up versus last month. Ride that wave with a thread and a Space this week while the room is still warm.",
+    "@{handle}, engagement is way up versus last month. Package the winning format into a weekly series before the lift fades.",
+  ],
+};
+
+const BLOCKER_TIPS = {
+  consistency: null,
+  time: [
+    "Time is tight, so batch two days of {niches} posts on Sunday and schedule them. Busy mornings will not kill the streak.",
+    "When work gets heavy, keep a note of 5 reply ideas so you can still show up in {niches} threads in ten minutes.",
+    "@{handle}, protect a 20 minute evening slot. That is enough to post once and reply in the rooms that matter.",
+  ],
+  engagement: [
+    "Posts are not getting seen. Reply under bigger {niches} accounts in the first 20 minutes and lead with a sharper first line.",
+    "Low visibility is usually a hook problem. Write the first line last, add a visual, and stay in the replies.",
+    "@{handle}, if posts feel invisible, spend the first 30 minutes of your session only on high traffic {niches} threads.",
+  ],
+  plan: [
+    "You do not have a clear plan. Write one Q4 goal, one weekly {niches} action, and one number you track on a pinned note.",
+    "Pick a simple Q4 plan: one audience, one format, one metric. Post that plan, then report it every Friday.",
+    "@{handle}, a one page plan beats random posting. Choose the {niches} topic you can talk about for 90 days and stick to it.",
+  ],
+  network: [
+    "You need the right people. Start 3 genuine convos a day with active {niches} accounts and offer a useful reply before any ask.",
+    "Network by being useful first. Leave a specific comment on 5 {niches} posts a day, then send one short DM that references it.",
+    "@{handle}, the right people are already posting. Be early in their threads and Spaces for two weeks before you pitch anything.",
+  ],
+  funds: [
+    "You do not need a budget to grow on CT. Trade time for leverage with collabs, proof of work, and consistent replies.",
+    "Skip paid growth for now. A public {niches} build log and three genuine collabs will do more than ads at this stage.",
+    "@{handle}, capital is tight, so make the work visible. Proof in a pinned thread attracts the people who can fund or hire you.",
+  ],
+  other: [
+    "You said {blockerOther} is holding you back. Pick one weekly public action that chips away at it and post the progress.",
+    "@{handle}, you named {blockerOther} as the blocker. Turn it into a 30 day challenge and share the recap each Friday.",
+    "Treat {blockerOther} like a project. Break it into one visible step a week so the timeline can hold you to it.",
+  ],
+  nothing: [
+    "You are locked in. Scale what already works and spend more time in bigger {niches} rooms and Spaces.",
+    "@{handle}, nothing is blocking you, so raise the ceiling. Pitch one collab and host one Space this month.",
+    "Since you are already doing well, use this Q4 to go bigger: a weekly Space, a pinned proof thread, and one serious collab.",
+  ],
+};
+
+const MISSION_TIPS = {
+  daily: [
+    "For the daily posting mission, write tomorrow's post tonight and keep a 7 draft buffer so the streak is already won.",
+    "To post daily, use a simple rotation: one take, one reply dump, one visual. That mix is easier to sustain than a long thread every day.",
+    "@{handle}, the daily mission is won the night before. Queue the post, then spend the morning in {niches} replies.",
+  ],
+  followers: [
+    "To hit a follower goal from {followers} followers, pair one post a day with 20 thoughtful replies under larger {niches} accounts.",
+    "Follower growth at {followers} is mostly reply windows and a clear pinned post. Do both every day for 30 days.",
+    "@{handle}, to grow past {followers} followers, be early in 3 {niches} threads each morning and pin your strongest proof of work.",
+  ],
+  overtrading: [
+    "To stop overtrading, write the thesis in a post before you size in, and review the trade in public, not just the entry.",
+    "Make a rule you can post: no size without a written invalidation. The timeline can help you keep it.",
+    "@{handle}, slow the triggers. A same day recap thread after each trade will expose leftovers and build trust.",
+  ],
+  ship: [
+    "To ship your project, drop something small and public every week, even if it is ugly, and pin the latest demo.",
+    "Shipping means a date. Announce the next demo on Monday, post the update on Friday, and keep that cadence for Q4.",
+    "@{handle}, pin a build log and update it weekly. CT backs builders it can click, not roadmaps it can only read.",
+  ],
+  connections: [
+    "To build real connections, give value in replies and DMs first. Opportunities on CT follow the people who show up.",
+    "Pick 10 {niches} accounts and be useful in their threads for two weeks. Then send a short, specific DM, not a pitch deck.",
+    "@{handle}, real connections come from repeated presence. A weekly Space plus honest replies will do more than mass DMs.",
+  ],
+  brand: [
+    "To level up the brand, make {niches} obvious in your bio, pinned post, and every hook for the next 30 days.",
+    "Brand is repetition. Use the same promise in your bio, your header, and the first line of your posts until it sticks.",
+    "@{handle}, treat the profile as a landing page. A stranger should know your {niches} lane in three seconds.",
+  ],
+};
+
+const OPP_TIPS = {
+  collaborations: [
+    "For collabs, DM two {niches} accounts this week with a specific idea, not a blank let's work. Mention a post you actually liked.",
+    "Collabs start in public. Quote or reply with real value, then suggest a joint thread or Space once they have seen you.",
+    "@{handle}, write a one sentence collab offer and send it to 3 people whose {niches} work you already respect.",
+  ],
+  partnerships: [
+    "For partnerships, pin a one page proof of work thread so a busy founder can judge you in 30 seconds.",
+    "Partnerships come faster when your profile looks ready. Clear bio, pinned results, and a way to contact you in the first line of the bio.",
+    "@{handle}, post a short 'what I can help with' thread and pin it. That is the partnership landing page.",
+  ],
+  career: [
+    "For career opportunities, pin a thread of your best {niches} work and put a clear open to work line in your bio.",
+    "Career leads on CT come from visible proof. Post a weekly recap of what you shipped and who can message you.",
+    "@{handle}, hire leads lurk. A pinned portfolio thread plus a standing 'happy to chat' in your bio does the asking for you.",
+  ],
+  investments: [
+    "For investments, publish the thesis before the call. A clear writeup in a thread is how serious people find you.",
+    "If you want investment conversations, show process: thesis, risk, recap. One honest thread a week beats a dozen vague calls.",
+    "@{handle}, put your best thesis in a pinned thread. Capital on CT follows a trail of public thinking.",
+  ],
+  networking: [
+    "For networking, be early in {niches} Spaces, say one useful thing, and follow up with a short DM the same day.",
+    "Network in public first. Five specific replies a day in {niches} rooms will open more DMs than a cold outreach blast.",
+    "@{handle}, pick one recurring Space and become a regular. Familiar voices get the intros.",
+  ],
+  community: [
+    "For community building, start a weekly {niches} thread or Space at a fixed time so people know when to show up.",
+    "A community needs a ritual. Same day, same format, same promise. Invite people in the replies to come back next week.",
+    "@{handle}, name the gathering and run it for 4 weeks before you judge it. Consistency is what turns lurkers into regulars.",
+  ],
+  other: [
+    "You said you are open to {oppOther}. Add that to your bio and mention it at the end of your next thread so the right people can reply.",
+    "@{handle}, you are looking for {oppOther}. Say it in your pinned post and in one Space intro this week.",
+    "Make {oppOther} easy to see. One line in the bio and one line at the end of your best posts is enough to start the DMs.",
+  ],
+};
+
+function buildTips(answers, handle) {
+  const seed = tipSeed(answers, handle);
+  const vars = tipVars(answers, handle);
+  const pool = [];
+  const usedIds = new Set();
+
+  function add(id, cat, priority, variants) {
+    if (!variants || !variants.length || usedIds.has(id)) return;
+    const text = sanitizeTip(fillTip(pickFrom(variants, seed, id), vars));
+    if (!text) return;
+    usedIds.add(id);
+    pool.push({ id, cat, priority, text });
   }
 
-  if (hasAnswer("trend", "down", answers) && tips.length < 3) {
-    tips.push("Engagement slipped last month. Bounce back with tighter hooks and more visuals.");
-  }
-  if (erScore < 14 && !hasAnswer("blocker", "engagement", answers) && tips.length < 3) {
-    tips.push("Reply under bigger accounts in " + niche + " to lift likes relative to your following.");
-  }
-  if (hasAnswer("consistency", "weekly", answers) && tips.length < 3) {
-    tips.push("Bump to most days so the algo and your audience both remember you.");
-  } else if (hasAnswer("consistency", "daily", answers) && tips.length < 3) {
-    tips.push("You are already showing up. Raise the quality now with fewer filler posts and stronger takes.");
-  } else if (hasAnswer("consistency", "most", answers) && tips.length < 3) {
-    tips.push("Protect the streak through Q4, then raise the quality of each post.");
+  if (vars._followers > 0) {
+    if (vars._band === "veryLow" || vars._band === "low") {
+      add("rate", "rate", 10, RATE_TIPS[vars._band]);
+    } else {
+      add("rate", "rate", 52, RATE_TIPS[vars._band]);
+    }
+    add("followers", "followers", vars._tier === "micro" || vars._tier === "early" ? 18 : 44, TIER_TIPS[vars._tier]);
   }
 
-  if (tips.length < 3 && hasAnswer("mission", "daily", answers)) {
-    tips.push("Queue tomorrow's post tonight so the daily streak is already won.");
-  } else if (tips.length < 3 && hasAnswer("mission", "followers", answers)) {
-    tips.push("Pair a daily post with replies under larger " + niche + " accounts to grow faster.");
-  } else if (tips.length < 3 && hasAnswer("mission", "overtrading", answers)) {
-    tips.push("Write the thesis before you size in, and review the trade, not just the entry.");
-  } else if (tips.length < 3 && hasAnswer("mission", "ship", answers)) {
-    tips.push("Ship something small in public every week, even if it's ugly.");
-  } else if (tips.length < 3 && hasAnswer("mission", "connections", answers)) {
-    tips.push("Give value in replies and DMs first. Opportunities follow the people who show up.");
-  } else if (tips.length < 3 && hasAnswer("mission", "brand", answers)) {
-    tips.push("Make " + niche + " obvious in your bio, pinned post, and every hook.");
+  const consistency = selectedValues("consistency", answers)[0];
+  if (consistency === "irregular" || hasAnswer("blocker", "consistency", answers)) {
+    add("consist", "consist", 11, CONSIST_TIPS.irregular);
+  } else if (consistency && CONSIST_TIPS[consistency]) {
+    add("consist", "consist", consistency === "weekly" ? 22 : 46, CONSIST_TIPS[consistency]);
   }
-  if (tips.length < 2) {
-    tips.push("Make " + niche + " obvious in your bio, pinned post, and every hook.");
+
+  const trend = selectedValues("trend", answers)[0];
+  if (trend === "down") add("trend", "trend", 13, TREND_TIPS.down);
+  else if (trend === "flat") add("trend", "trend", 36, TREND_TIPS.flat);
+  else if (trend && TREND_TIPS[trend]) add("trend", "trend", 48, TREND_TIPS[trend]);
+
+  const blockers = selectedValues("blocker", answers);
+  if (hasAnswer("blocker", "nothing", answers)) {
+    add("locked", "locked", 28, BLOCKER_TIPS.nothing);
+  } else {
+    const ranked = blockers
+      .filter((value) => value !== "consistency")
+      .slice()
+      .sort((a, b) => {
+        const sa = (optionByValue("blocker", a) && optionByValue("blocker", a).score) || 99;
+        const sb = (optionByValue("blocker", b) && optionByValue("blocker", b).score) || 99;
+        return sa - sb;
+      });
+    ranked.forEach((value, i) => {
+      if (BLOCKER_TIPS[value]) add("blocker:" + value, "blocker", 15 + i, BLOCKER_TIPS[value]);
+    });
   }
-  return tips.slice(0, 3).map(cleanText);
+
+  selectedValues("mission", answers).forEach((value, i) => {
+    if (MISSION_TIPS[value]) add("mission:" + value, "mission", 30 + i, MISSION_TIPS[value]);
+  });
+
+  selectedValues("opportunities", answers).forEach((value, i) => {
+    if (OPP_TIPS[value]) add("opp:" + value, "opp", 40 + i, OPP_TIPS[value]);
+  });
+
+  const niches = selectedValues("niche", answers);
+  if (niches.length) {
+    const chosen = niches[hashSeed(seed + "::nichepick") % niches.length];
+    if (NICHE_TIPS[chosen]) add("niche:" + chosen, "niche", 42, NICHE_TIPS[chosen]);
+  }
+
+  pool.sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id));
+  const out = [];
+  const usedCat = new Set();
+
+  function take(match) {
+    const index = pool.findIndex((item) => !usedCat.has(item.cat) && match(item));
+    if (index < 0) return;
+    const item = pool.splice(index, 1)[0];
+    usedCat.add(item.cat);
+    out.push(item);
+  }
+
+  take((item) => item.priority <= 25);
+  take((item) => item.cat === "mission");
+  if (hashSeed(seed + "::lane") % 2 === 0) {
+    take((item) => item.cat === "opp");
+    take((item) => item.cat === "niche");
+  } else {
+    take((item) => item.cat === "niche");
+    take((item) => item.cat === "opp");
+  }
+  while (out.length < 4 && pool.length) take(() => true);
+
+  const texts = [];
+  const seen = new Set();
+  out.forEach((item) => {
+    const key = item.text.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    texts.push(item.text);
+  });
+
+  const four = texts.slice(0, 4);
+  const tooLong = four.length > 3 && (four.some((t) => t.length > 160) || four.reduce((n, t) => n + t.length, 0) > 420);
+  return (tooLong ? four.slice(0, 3) : four).map(sanitizeTip);
+}
+
+
+function opportunityDisplay(answers) {
+  return selectedValues("opportunities", answers)
+    .map((value) => {
+      if (value === "other") return cleanText(answers.opportunitiesOther || "Something else");
+      return optionLabel("opportunities", value);
+    })
+    .filter(Boolean);
 }
 
 function blockerDisplay(answers) {
@@ -350,7 +748,7 @@ function blockerDisplay(answers) {
     .filter(Boolean);
 }
 
-function scoreAnswers(answers) {
+function scoreAnswers(answers, handle) {
   const followers = followerCount(answers);
   const likes = likesCount(answers);
   const consistency = firstOption("consistency", answers);
@@ -380,10 +778,10 @@ function scoreAnswers(answers) {
     followers: formatCount(followers),
     likes: formatCount(likes),
     blockers: blockerDisplay(answers),
-    opportunities: selectedLabels("opportunities", answers),
+    opportunities: opportunityDisplay(answers),
     missions: selectedLabels("mission", answers),
     trend: trend || null,
-    tips: buildTips(answers),
+    tips: buildTips(answers, handle || state.handle),
   };
 }
 
@@ -431,9 +829,21 @@ function startQuiz() {
   renderQuestion();
 }
 
-function isOtherOpen() {
-  const q = QUESTIONS[state.index];
-  return Boolean(q && q.id === "blocker" && hasAnswer("blocker", "other") && !hasAnswer("blocker", "nothing"));
+function writeInKey(q) {
+  return q.id + "Other";
+}
+
+function isOtherOpen(q = QUESTIONS[state.index]) {
+  if (!q || !q.options || !q.options.some((opt) => opt.value === "other")) return false;
+  if (q.id === "blocker" && hasAnswer("blocker", "nothing")) return false;
+  return hasAnswer(q.id, "other");
+}
+
+function syncOtherInput(q) {
+  const input = $("otherInput");
+  input.placeholder = q && q.id === "opportunities" ? "What are you looking for?" : "What's getting in the way?";
+  const saved = (q && state.answers[writeInKey(q)]) || "";
+  if (input.value !== saved) input.value = saved;
 }
 
 function updateContinue() {
@@ -456,11 +866,9 @@ function updateContinue() {
   }
 
   btn.classList.remove("hidden");
-  if (isOtherOpen()) {
+  if (isOtherOpen(q)) {
     wrap.classList.remove("hidden");
-    if ($("otherInput").value !== (state.answers.blockerOther || "")) {
-      $("otherInput").value = state.answers.blockerOther || "";
-    }
+    syncOtherInput(q);
     btn.disabled = selectedValues(q.id).length === 0 || !$("otherInput").value.trim();
   } else {
     wrap.classList.add("hidden");
@@ -564,8 +972,8 @@ function pickOption(q, value, btn) {
     if (q.id === "blocker") current.delete("nothing");
     if (current.has(value)) current.delete(value);
     else current.add(value);
-    if (q.id === "blocker" && value !== "other" && !current.has("other")) {
-      delete state.answers.blockerOther;
+    if (value !== "other" && !current.has("other")) {
+      delete state.answers[writeInKey(q)];
     }
   }
   state.answers[q.id] = q.options.map((o) => o.value).filter((v) => current.has(v));
@@ -592,10 +1000,10 @@ function continueQuiz() {
     return;
   }
   if (!q.multi || selectedValues(q.id).length === 0) return;
-  if (isOtherOpen()) {
+  if (isOtherOpen(q)) {
     const text = $("otherInput").value.trim().slice(0, 40);
     if (!text) return;
-    state.answers.blockerOther = text;
+    state.answers[writeInKey(q)] = text;
   }
   advance();
 }
@@ -651,7 +1059,7 @@ function renderTips(tips) {
     bullet.className = "bullet";
     bullet.textContent = "• ";
     li.appendChild(bullet);
-    li.appendChild(document.createTextNode(cleanText(tip)));
+    li.appendChild(document.createTextNode(sanitizeTip(tip)));
     ul.appendChild(li);
   });
 }
@@ -825,7 +1233,10 @@ $("handle").addEventListener("keydown", (e) => {
 $("backBtn").addEventListener("click", goBack);
 $("continueBtn").addEventListener("click", continueQuiz);
 $("otherInput").addEventListener("input", () => {
-  state.answers.blockerOther = $("otherInput").value.slice(0, 40);
+  const q = QUESTIONS[state.index];
+  if (q && q.options && q.options.some((opt) => opt.value === "other")) {
+    state.answers[writeInKey(q)] = $("otherInput").value.slice(0, 40);
+  }
   updateContinue();
 });
 $("otherInput").addEventListener("keydown", (e) => {
@@ -847,3 +1258,5 @@ $("countInput").addEventListener("keydown", (e) => {
 $("againBtn").addEventListener("click", resetAll);
 $("homeLink").addEventListener("click", resetAll);
 $("downloadBtn").addEventListener("click", downloadCard);
+
+window.__ctq4 = { buildTips, scoreAnswers, formatCount, opportunityDisplay, hashSeed };
