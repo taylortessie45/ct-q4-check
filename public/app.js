@@ -309,6 +309,8 @@ function sanitizeTip(text) {
   return String(text || "")
     .replace(/[—–−‒―]/g, " ")
     .replace(/\s+-\s+/g, " ")
+    .replace(/@\w+/g, "")
+    .replace(/@/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -357,7 +359,6 @@ function tipVars(answers, handle) {
   const rate = followers > 0 ? (likes / followers) * 100 : 0;
   const writeIn = (value) => cleanText(value).replace(/[-—–−‒―]/g, " ").replace(/\s+/g, " ").trim();
   return {
-    handle: handle || "friend",
     niches: nichePhrase(answers),
     followers: formatCount(followers),
     likes: formatCount(likes),
@@ -395,7 +396,7 @@ const NICHE_TIPS = {
     "Keep calls short and the recap honest. A weekly scorecard post will separate you from noise accounts.",
   ],
   Airdrops: [
-    "In airdrops, share the steps and the risk, not just a link dump. A clear checklist thread gets saves and follows.",
+    "In airdrops, share the steps and the risk, not just a link dump. A clear checklist thread is the kind of post people bookmark and come back to.",
     "Post a weekly recap of what you farmed and why. Consistent, honest farming notes build an airdrop audience.",
     "Be early in farming chats and Spaces, then publish the playbook the same day while people still need it.",
   ],
@@ -405,7 +406,7 @@ const NICHE_TIPS = {
     "A weekly recap of what you played, earned, or missed is stronger than random screenshots.",
   ],
   AI: [
-    "In AI, show the workflow, not just the output. A before and after thread of a prompt or agent gets saved.",
+    "In AI, show the workflow, not just the output. A before and after thread of a prompt or agent is the kind of post people bookmark.",
     "Post one practical AI tool or prompt a day that crypto people can use in research or content.",
     "Join AI plus crypto Spaces and demo something live. Builders follow accounts that show work, not slogans.",
   ],
@@ -425,22 +426,35 @@ const RATE_TIPS = {
   veryLow: [
     "Your {likes} likes on {followers} followers is a {rate}% rate, which is very low. Spend 30 minutes in reply windows under bigger {niches} accounts right after they post.",
     "A {rate}% like rate on {followers} followers means posts are not landing. Lead with a sharper first line and a visual, then reply while the big {niches} threads are still fresh.",
-    "@{handle}, {likes} likes at {followers} followers is a {rate}% rate. Jump into live Spaces and reply in the first 15 minutes of bigger posts to get seen.",
+    "Your {likes} likes at {followers} followers is a {rate}% rate. Jump into live Spaces and reply in the first 15 minutes of bigger posts to get seen.",
+    "At a {rate}% like rate on {followers} followers, original posts are not carrying enough. Trade an hour of posting time for focused replies under accounts already moving.",
+    "A {rate}% rate with {likes} likes on {followers} followers is a reach problem. Put a clear point in the first line and add a screenshot so the post is easier to stop on.",
+    "With only {likes} likes on {followers} followers ({rate}%), start every session in the replies of the largest {niches} accounts posted in the last hour.",
+    "Your {rate}% like rate at {followers} followers says the opening is not earning the click. Rewrite the first line last, then post when US timelines are waking up.",
+    "At {followers} followers and {likes} likes, a {rate}% rate needs more surface area. Leave 15 specific replies a day in busy {niches} rooms before you publish anything new.",
   ],
   low: [
     "Your {likes} likes on {followers} followers is a {rate}% rate, which is on the low side for CT. Reply under larger {niches} accounts in the first 20 minutes they post.",
     "A {rate}% like rate at {followers} followers can improve fast. Add a visual to every post and stay in the replies of the first hour.",
-    "@{handle}, {likes} likes on {followers} followers is a {rate}% rate. Test a bolder hook for seven days and keep only what gets saves.",
+    "Your {likes} likes on {followers} followers is a {rate}% rate. Try a clearer first line for seven days and note which posts earn the most replies.",
+    "A {rate}% rate with {likes} likes on {followers} followers is fixable. Quote a live {niches} topic, add your own take, and stay in that thread for 20 minutes.",
+    "At {followers} followers, {likes} likes is a {rate}% rate. Post one short thread this week that teaches a single useful thing, then pin the best result.",
+    "Your {rate}% like rate means some posts are being skipped. Cut the preamble, put the point in line one, and add a chart or screenshot.",
+    "With {likes} likes on {followers} followers ({rate}%), use the first 30 minutes after posting only to reply. That second wave is how mid size posts get a second look.",
+    "A {rate}% rate at {followers} followers often means the topic is fine and the opening is weak. Write three hooks, pick the most specific one, and post at a busy hour.",
+    "Your {likes} likes on {followers} followers is a {rate}% rate. Review which of your past posts got replies, then repeat that format for the next week.",
   ],
   healthy: [
     "Your {likes} likes on {followers} followers is a {rate}% rate, which is solid. Keep that format and post it when US timelines are waking up.",
     "A {rate}% like rate at {followers} followers is healthy. Turn your best post of the week into a short thread and pin it.",
-    "@{handle}, {likes} likes on {followers} followers is a {rate}% rate. You have a working format, so repeat it on the days you usually get reach.",
+    "Your {likes} likes on {followers} followers is a {rate}% rate. You have a working format, so repeat it on the days you usually get reach.",
+    "A {rate}% rate at {followers} followers is a good base. Make a weekly series from the format that already works so people know when to look for you.",
   ],
   high: [
     "Your {likes} likes on {followers} followers is a {rate}% rate, which is strong. Turn those winning posts into a pinned thread so new visitors see your best work first.",
     "A {rate}% like rate at {followers} followers is excellent. Package that format into a weekly series so people know when to show up.",
-    "@{handle}, {likes} likes on {followers} followers is a {rate}% rate, which is strong. Host a Space on the same topic while that attention is still warm.",
+    "Your {likes} likes on {followers} followers is a {rate}% rate, which is strong. Host a Space on the same topic while that attention is still warm.",
+    "A {rate}% rate at {followers} followers means the room already trusts the format. Use the next post to invite people into a thread or Space.",
   ],
 };
 
@@ -448,50 +462,50 @@ const TIER_TIPS = {
   micro: [
     "At {followers} followers, replies beat original posts for reach. Sit in 3 busy {niches} threads a day and leave a real take.",
     "With {followers} followers, a daily useful reply in {niches} rooms will grow you faster than a quiet original post.",
-    "@{handle}, at {followers} followers your job is to be early and useful in {niches} threads, not to shout into an empty timeline.",
+    "At {followers} followers, the highest leverage move is to be early and useful in {niches} threads, not to shout into an empty timeline.",
   ],
   early: [
     "From {followers} followers, a tight personal brand starts to compound. Make {niches} obvious in your bio and pinned post.",
     "At {followers} followers, one clear point of view plus daily replies will move you through the next stage faster than random posts.",
-    "@{handle}, with {followers} followers you are past zero. Publish a weekly {niches} recap so people have a reason to follow.",
+    "With {followers} followers, publish a weekly {niches} recap so people have a reason to follow.",
   ],
   mid: [
     "At {followers} followers you can start attracting collabs. Publish one useful {niches} breakdown a week and ask one person to hop on a Space.",
     "With {followers} followers, turn your best replies into original posts. That is how mid size {niches} accounts cross 10K.",
-    "@{handle}, at {followers} followers people notice consistency. A fixed weekly thread or Space gives them a reason to come back.",
+    "At {followers} followers people notice consistency. A fixed weekly thread or Space gives them a reason to come back.",
   ],
   large: [
     "With {followers} followers, host a weekly Space or a collab thread. Your replies still move {niches} rooms more than lurkers think.",
     "At {followers} followers, use the reach to lift smaller voices in {niches} and ask for one serious collab a week.",
-    "@{handle}, {followers} followers is enough to set the room. Pin a proof of work thread and invite people into a regular Space.",
+    "{followers} followers is enough to set the room. Pin a proof of work thread and invite people into a regular Space.",
   ],
   huge: [
     "At {followers} followers, people already watch you. Post less often, make stronger calls, and keep a pinned proof of work.",
     "With {followers} followers, your name carries rooms. Protect the signal and let fewer, better {niches} posts do the work.",
-    "@{handle}, at {followers} followers the next leap is curation and Spaces, not more volume.",
+    "At {followers} followers the next leap is curation and Spaces, not more volume.",
   ],
 };
 
 const CONSIST_TIPS = {
   irregular: [
     "Your posting is on and off, which resets the algo. Lock a 20 minute slot like a mint time and show up every day for two weeks.",
-    "CT forgets quiet accounts fast. Queue one post the night before so @{handle} never misses a day.",
+    "CT forgets quiet accounts fast. Queue one post the night before so a busy day never becomes a missed day.",
     "On and off posting is the main leak. Write 5 short {niches} posts on Sunday and schedule them through the week.",
   ],
   weekly: [
     "A few times a week is not enough for the algo to remember you. Bump to most days, even if the post is short.",
     "Weekly posting leaves too many quiet days. Add a daily reply block in {niches} threads even when you do not have a full post.",
-    "@{handle}, move from a few posts a week to most days for this Q4 sprint and reassess after 30 days.",
+    "Move from a few posts a week to most days for this Q4 sprint and reassess after 30 days.",
   ],
   most: [
     "You already post most days. Protect that streak and spend the extra time writing a stronger first line.",
     "Most days is a good base. Keep it through Q4, then raise the quality of each {niches} post rather than adding volume.",
-    "@{handle}, you are almost daily. Queue tomorrow's post tonight so a busy day cannot break the streak.",
+    "You are almost daily. Queue tomorrow's post tonight so a busy day cannot break the streak.",
   ],
   daily: [
     "You already post daily, so quality is the lever now. Cut filler and make every hook worth a follow.",
     "Daily posting is done. Use the extra discipline on replies and a weekly {niches} thread that can be pinned.",
-    "@{handle}, you already show up every day. Raise the bar: fewer filler posts, stronger takes, cleaner visuals.",
+    "You already show up every day. Cut filler posts and spend the extra care on stronger takes and cleaner visuals.",
   ],
 };
 
@@ -499,7 +513,7 @@ const TREND_TIPS = {
   down: [
     "Engagement is down versus last month. Bounce back with tighter hooks, a visual on every post, and faster replies under bigger accounts.",
     "The last 30 days slipped. Audit which {niches} posts died, then reuse only the hook styles that still got replies.",
-    "@{handle}, engagement is down versus last month. Spend a week in reply windows and Spaces before you judge the next format.",
+    "Engagement is down versus last month. Spend a week in reply windows and Spaces before you judge the next format.",
   ],
   flat: [
     "Engagement is flat versus last month. Change the hook style for a week and track which posts break the pattern.",
@@ -511,7 +525,7 @@ const TREND_TIPS = {
   ],
   wayup: [
     "Engagement is way up versus last month. Ride that wave with a thread and a Space this week while the room is still warm.",
-    "@{handle}, engagement is way up versus last month. Package the winning format into a weekly series before the lift fades.",
+    "Engagement is way up versus last month. Package the winning format into a weekly series before the lift fades.",
   ],
 };
 
@@ -520,36 +534,36 @@ const BLOCKER_TIPS = {
   time: [
     "Time is tight, so batch two days of {niches} posts on Sunday and schedule them. Busy mornings will not kill the streak.",
     "When work gets heavy, keep a note of 5 reply ideas so you can still show up in {niches} threads in ten minutes.",
-    "@{handle}, protect a 20 minute evening slot. That is enough to post once and reply in the rooms that matter.",
+    "Protect a 20 minute evening slot. That is enough to post once and reply in the rooms that matter.",
   ],
   engagement: [
     "Posts are not getting seen. Reply under bigger {niches} accounts in the first 20 minutes and lead with a sharper first line.",
     "Low visibility is usually a hook problem. Write the first line last, add a visual, and stay in the replies.",
-    "@{handle}, if posts feel invisible, spend the first 30 minutes of your session only on high traffic {niches} threads.",
+    "If posts feel invisible, spend the first 30 minutes of your session only on high traffic {niches} threads.",
   ],
   plan: [
     "You do not have a clear plan. Write one Q4 goal, one weekly {niches} action, and one number you track on a pinned note.",
     "Pick a simple Q4 plan: one audience, one format, one metric. Post that plan, then report it every Friday.",
-    "@{handle}, a one page plan beats random posting. Choose the {niches} topic you can talk about for 90 days and stick to it.",
+    "A one page plan beats random posting. Choose the {niches} topic you can talk about for 90 days and stick to it.",
   ],
   network: [
     "You need the right people. Start 3 genuine convos a day with active {niches} accounts and offer a useful reply before any ask.",
     "Network by being useful first. Leave a specific comment on 5 {niches} posts a day, then send one short DM that references it.",
-    "@{handle}, the right people are already posting. Be early in their threads and Spaces for two weeks before you pitch anything.",
+    "The right people are already posting. Be early in their threads and Spaces for two weeks before you pitch anything.",
   ],
   funds: [
     "You do not need a budget to grow on CT. Trade time for leverage with collabs, proof of work, and consistent replies.",
     "Skip paid growth for now. A public {niches} build log and three genuine collabs will do more than ads at this stage.",
-    "@{handle}, capital is tight, so make the work visible. Proof in a pinned thread attracts the people who can fund or hire you.",
+    "Capital is tight, so make the work visible. Proof in a pinned thread attracts the people who can fund or hire you.",
   ],
   other: [
     "You said {blockerOther} is holding you back. Pick one weekly public action that chips away at it and post the progress.",
-    "@{handle}, you named {blockerOther} as the blocker. Turn it into a 30 day challenge and share the recap each Friday.",
+    "You named {blockerOther} as the blocker. Turn it into a 30 day challenge and share the recap each Friday.",
     "Treat {blockerOther} like a project. Break it into one visible step a week so the timeline can hold you to it.",
   ],
   nothing: [
     "You are locked in. Scale what already works and spend more time in bigger {niches} rooms and Spaces.",
-    "@{handle}, nothing is blocking you, so raise the ceiling. Pitch one collab and host one Space this month.",
+    "Nothing is blocking you, so raise the ceiling. Pitch one collab and host one Space this month.",
     "Since you are already doing well, use this Q4 to go bigger: a weekly Space, a pinned proof thread, and one serious collab.",
   ],
 };
@@ -558,32 +572,32 @@ const MISSION_TIPS = {
   daily: [
     "For the daily posting mission, write tomorrow's post tonight and keep a 7 draft buffer so the streak is already won.",
     "To post daily, use a simple rotation: one take, one reply dump, one visual. That mix is easier to sustain than a long thread every day.",
-    "@{handle}, the daily mission is won the night before. Queue the post, then spend the morning in {niches} replies.",
+    "The daily mission is won the night before. Queue the post, then spend the morning in {niches} replies.",
   ],
   followers: [
     "To hit a follower goal from {followers} followers, pair one post a day with 20 thoughtful replies under larger {niches} accounts.",
     "Follower growth at {followers} is mostly reply windows and a clear pinned post. Do both every day for 30 days.",
-    "@{handle}, to grow past {followers} followers, be early in 3 {niches} threads each morning and pin your strongest proof of work.",
+    "To grow past {followers} followers, be early in 3 {niches} threads each morning and pin your strongest proof of work.",
   ],
   overtrading: [
     "To stop overtrading, write the thesis in a post before you size in, and review the trade in public, not just the entry.",
     "Make a rule you can post: no size without a written invalidation. The timeline can help you keep it.",
-    "@{handle}, slow the triggers. A same day recap thread after each trade will expose leftovers and build trust.",
+    "Slow the triggers. A same day recap thread after each trade will expose leftovers and build trust.",
   ],
   ship: [
     "To ship your project, drop something small and public every week, even if it is ugly, and pin the latest demo.",
     "Shipping means a date. Announce the next demo on Monday, post the update on Friday, and keep that cadence for Q4.",
-    "@{handle}, pin a build log and update it weekly. CT backs builders it can click, not roadmaps it can only read.",
+    "Pin a build log and update it weekly. CT backs builders it can click, not roadmaps it can only read.",
   ],
   connections: [
     "To build real connections, give value in replies and DMs first. Opportunities on CT follow the people who show up.",
     "Pick 10 {niches} accounts and be useful in their threads for two weeks. Then send a short, specific DM, not a pitch deck.",
-    "@{handle}, real connections come from repeated presence. A weekly Space plus honest replies will do more than mass DMs.",
+    "Real connections come from repeated presence. A weekly Space plus honest replies will do more than mass DMs.",
   ],
   brand: [
     "To level up the brand, make {niches} obvious in your bio, pinned post, and every hook for the next 30 days.",
     "Brand is repetition. Use the same promise in your bio, your header, and the first line of your posts until it sticks.",
-    "@{handle}, treat the profile as a landing page. A stranger should know your {niches} lane in three seconds.",
+    "Treat the profile as a landing page. A stranger should know your {niches} lane in three seconds.",
   ],
 };
 
@@ -591,36 +605,36 @@ const OPP_TIPS = {
   collaborations: [
     "For collabs, DM two {niches} accounts this week with a specific idea, not a blank let's work. Mention a post you actually liked.",
     "Collabs start in public. Quote or reply with real value, then suggest a joint thread or Space once they have seen you.",
-    "@{handle}, write a one sentence collab offer and send it to 3 people whose {niches} work you already respect.",
+    "Write a one sentence collab offer and send it to 3 people whose {niches} work you already respect.",
   ],
   partnerships: [
     "For partnerships, pin a one page proof of work thread so a busy founder can judge you in 30 seconds.",
     "Partnerships come faster when your profile looks ready. Clear bio, pinned results, and a way to contact you in the first line of the bio.",
-    "@{handle}, post a short 'what I can help with' thread and pin it. That is the partnership landing page.",
+    "Post a short note on what you can help with, then pin it. That is the partnership landing page.",
   ],
   career: [
     "For career opportunities, pin a thread of your best {niches} work and put a clear open to work line in your bio.",
     "Career leads on CT come from visible proof. Post a weekly recap of what you shipped and who can message you.",
-    "@{handle}, hire leads lurk. A pinned portfolio thread plus a standing 'happy to chat' in your bio does the asking for you.",
+    "A pinned portfolio thread plus a clear note in your bio that you are open to work does the asking for you.",
   ],
   investments: [
     "For investments, publish the thesis before the call. A clear writeup in a thread is how serious people find you.",
     "If you want investment conversations, show process: thesis, risk, recap. One honest thread a week beats a dozen vague calls.",
-    "@{handle}, put your best thesis in a pinned thread. Capital on CT follows a trail of public thinking.",
+    "Put your best thesis in a pinned thread. Capital on CT follows a trail of public thinking.",
   ],
   networking: [
     "For networking, be early in {niches} Spaces, say one useful thing, and follow up with a short DM the same day.",
     "Network in public first. Five specific replies a day in {niches} rooms will open more DMs than a cold outreach blast.",
-    "@{handle}, pick one recurring Space and become a regular. Familiar voices get the intros.",
+    "Pick one recurring Space and become a regular. Familiar voices get the intros.",
   ],
   community: [
     "For community building, start a weekly {niches} thread or Space at a fixed time so people know when to show up.",
     "A community needs a ritual. Same day, same format, same promise. Invite people in the replies to come back next week.",
-    "@{handle}, name the gathering and run it for 4 weeks before you judge it. Consistency is what turns lurkers into regulars.",
+    "Name the gathering and run it for 4 weeks before you judge it. Consistency is what turns lurkers into regulars.",
   ],
   other: [
     "You said you are open to {oppOther}. Add that to your bio and mention it at the end of your next thread so the right people can reply.",
-    "@{handle}, you are looking for {oppOther}. Say it in your pinned post and in one Space intro this week.",
+    "You are looking for {oppOther}. Say it in your pinned post and in one Space intro this week.",
     "Make {oppOther} easy to see. One line in the bio and one line at the end of your best posts is enough to start the DMs.",
   ],
 };
@@ -634,7 +648,7 @@ function buildTips(answers, handle) {
   function add(id, cat, priority, variants) {
     if (!variants || !variants.length || usedIds.has(id)) return;
     const text = sanitizeTip(fillTip(pickFrom(variants, seed, id), vars));
-    if (!text) return;
+    if (!text || text.includes("@") || (handle && text.includes(handle))) return;
     usedIds.add(id);
     pool.push({ id, cat, priority, text });
   }
